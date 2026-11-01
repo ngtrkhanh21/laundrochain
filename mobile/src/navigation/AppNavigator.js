@@ -42,7 +42,7 @@ export default function AppNavigator() {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: '#0a3556',
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -51,12 +51,12 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
     marginBottom: 16,
@@ -69,8 +69,8 @@ const styles = StyleSheet.create({
   },
   splashSub: {
     fontSize: 14,
-    color: '#93c5fd',
-    fontWeight: '500',
+    color: COLORS.secondaryLight,
+    fontWeight: '600',
     marginTop: 6,
   },
 });

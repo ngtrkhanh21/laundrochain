@@ -132,47 +132,47 @@ export default function MyOrdersScreen({ navigation }) {
     const s = String(status || '').toUpperCase();
     if (s === 'IN_PROGRESS' || s === 'RUNNING' || s === 'WASHING' || s === 'DRYING') {
       return {
-        bg: '#EFF6FF',
-        text: '#1D4ED8',
+        bg: COLORS.primarySoft,
+        text: COLORS.primary,
         label: isVietnamese ? 'ĐANG GIẶT / SẤY' : 'RUNNING',
         step: 3,
       };
     }
     if (s === 'CONFIRMED') {
       return {
-        bg: '#ECFDF5',
-        text: '#047857',
+        bg: COLORS.successSoft,
+        text: COLORS.success,
         label: isVietnamese ? 'ĐÃ XÁC NHẬN - CHỜ BẤM' : 'CONFIRMED',
         step: 2,
       };
     }
     if (s === 'COMPLETED' || s === 'PAID' || s === 'SUCCESS') {
       return {
-        bg: '#F0FDF4',
-        text: '#16A34A',
+        bg: COLORS.successSoft,
+        text: COLORS.success,
         label: isVietnamese ? 'HOÀN THÀNH' : 'COMPLETED',
         step: 4,
       };
     }
     if (s === 'PENDING_PAYMENT' || s === 'PENDING') {
       return {
-        bg: '#FEF3C7',
-        text: '#B45309',
+        bg: COLORS.warningSoft,
+        text: COLORS.warning,
         label: isVietnamese ? 'CHỜ THANH TOÁN' : 'PENDING',
         step: 1,
       };
     }
     if (s === 'CANCELLED' || s === 'FAILED') {
       return {
-        bg: '#FEF2F2',
-        text: '#B91C1C',
+        bg: COLORS.dangerSoft,
+        text: COLORS.danger,
         label: isVietnamese ? 'ĐÃ HỦY' : 'CANCELLED',
         step: 0,
       };
     }
     return {
-      bg: '#F1F5F9',
-      text: '#475569',
+      bg: COLORS.surfaceAlt,
+      text: COLORS.textSecondary,
       label: s || (isVietnamese ? 'ĐANG XỬ LÝ' : 'PROCESSING'),
       step: 1,
     };
@@ -640,10 +640,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    shadowColor: '#000',
+    borderColor: COLORS.border,
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
   },

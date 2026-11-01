@@ -32,51 +32,62 @@ export const STORAGE_KEYS = {
   CACHED_TXS: 'laundro_cached_transactions',
 };
 
-// Bảng màu thiết kế hiện đại Pinterest (Royal Blue, Soft Cream, Clean White & Slate)
+// GLOBAL BLUE & WHITE DESIGN SYSTEM (LaundroChain Mobile App Standard)
 export const COLORS = {
-  // Primary Royal Blue Palette
-  primary: '#2563EB',         // Xanh dương tươi sáng phong cách Pinterest
-  primaryDark: '#1D4ED8',     // Xanh dương đậm nhấn mạnh
-  primaryLight: '#3B82F6',    // Xanh dương sáng
-  primarySoft: '#EFF6FF',     // Nền xanh nhạt dịu mắt
-  primaryBorder: '#BFDBFE',   // Viền xanh nhạt
-  brandNavy: '#0F172A',       // Xanh đen thương hiệu sang trọng
+  // Primary Blue & Secondary Cyan Palette
+  primary: '#1976D2',         // Primary Blue - Standard action color
+  primaryDark: '#1565C0',     // Darker blue for active states/gradients
+  primaryLight: '#42A5F5',    // Lighter blue for focus rings
+  primarySoft: '#EBF5FF',     // Soft light blue tint for subtle backgrounds
+  primaryBorder: '#BEE3F8',   // Light blue border
+  secondary: '#42B8E8',       // Secondary Cyan - Accent highlights
+  secondaryLight: '#E0F7FA',  // Soft cyan tint
+  secondaryDark: '#0288D1',   // Deep cyan
+  brandNavy: '#243447',       // Brand primary dark
 
-  // Warm Amber / Cream Banner Palette (cho các banner khuyến mãi & Freshness card)
-  bannerWarm: '#FEF3C7',      // Vàng kem ấm (Fresh clothes banner)
-  bannerBorder: '#FDE68A',
-  bannerText: '#78350F',
-  bannerSubtext: '#92400E',
+  // Promotional Banner (Blue & White theme, replacing old yellow/warm)
+  bannerWarm: '#EBF5FF',      // Soft clean light blue background
+  bannerBorder: '#BEE3F8',    // Clean blue border
+  bannerText: '#1976D2',      // Primary blue title
+  bannerSubtext: '#243447',   // Primary text for description
 
-  // Accent Green Palette
-  accent: '#10B981',         // Xanh ngọc lục bảo (Thành công / Sẵn sàng)
-  accentDark: '#059669',
+  // Status Colors (Strict semantic status usage only)
+  success: '#22C55E',         // Semantic green (Ready / Completed)
+  successDark: '#16A34A',
+  successSoft: '#ECFDF5',
+  successBorder: '#A7F3D0',
+  accent: '#22C55E',          // Backward compatibility for accent
+  accentDark: '#16A34A',
   accentSoft: '#ECFDF5',
   accentBorder: '#A7F3D0',
 
-  // Amber / Warning Palette
+  warning: '#F59E0B',         // Semantic amber (Busy / Pending payment)
+  warningDark: '#D97706',
+  warningSoft: '#FFFBEB',
+  warningBorder: '#FDE68A',
   amber: '#F59E0B',
   amberDark: '#D97706',
   amberSoft: '#FFFBEB',
   amberBorder: '#FDE68A',
 
-  // Danger / Red Palette
-  danger: '#EF4444',
+  danger: '#EF4444',          // Semantic red (Cancelled / Error)
   dangerLight: '#FEE2E2',
   dangerDark: '#DC2626',
   dangerSoft: '#FEF2F2',
+  error: '#EF4444',
+  info: '#1976D2',
 
-  // Neutral Background & Surface
-  background: '#F8FAFC',     // Nền ứng dụng sáng sủa, thoáng đãng
-  card: '#FFFFFF',           // Nền thẻ trắng tinh
-  surface: '#F1F5F9',        // Bề mặt xám nhạt
-  surfaceAlt: '#F8FAFC',
-  border: '#E2E8F0',         // Viền thẻ tinh tế
-  borderLight: '#F1F5F9',
+  // Background & Surfaces
+  background: '#F4F8FC',     // Standard page background
+  card: '#FFFFFF',           // White cards & surfaces
+  surface: '#FFFFFF',        // White surface
+  surfaceAlt: '#F4F8FC',     // Secondary surface
+  border: '#E2E8F0',         // Standard border
+  borderLight: '#EDF2F7',    // Light divider border
 
-  // Typography Colors
-  text: '#0F172A',           // Văn bản chính đậm nét, dễ đọc
-  textSecondary: '#475569',  // Văn bản phụ
-  textMuted: '#94A3B8',      // Gợi ý / Nhãn mờ
+  // Typography
+  text: '#243447',           // Primary Text (Headings, titles, key numbers)
+  textSecondary: '#718096',  // Secondary Text (Descriptions, metadata)
+  textMuted: '#A0AEC0',      // Muted / placeholders
   white: '#FFFFFF',
 };

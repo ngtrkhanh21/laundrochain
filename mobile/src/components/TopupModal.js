@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#eff6ff',
+    backgroundColor: COLORS.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -441,8 +441,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   quickBtnSelected: {
-    backgroundColor: '#eff6ff',
-    borderColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primarySoft,
+    borderColor: COLORS.primary,
   },
   quickAmount: {
     fontSize: 15,
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   quickAmountSelected: {
-    color: COLORS.primaryLight,
+    color: COLORS.primary,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -540,14 +540,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#eff6ff',
+    backgroundColor: COLORS.primarySoft,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
   },
   pollingText: {
     fontSize: 12,
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
     fontWeight: '500',
     flex: 1,
   },
@@ -585,18 +585,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   demoSimulateBtn: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: COLORS.secondaryLight,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#7dd3fc',
+    borderColor: COLORS.secondary,
   },
   demoSimulateText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0369a1',
+    color: COLORS.primary,
   },
   successIcon: {
     marginBottom: 14,

@@ -139,11 +139,11 @@ export default function MemberWalletScreen() {
           {/* Card Top Row: Brand & Chip */}
           <View style={styles.cardTopRow}>
             <View style={styles.cardBrandBox}>
-              <Zap size={18} color="#93C5FD" fill="#93C5FD" />
+              <Zap size={18} color={COLORS.secondary} fill={COLORS.secondary} />
               <Text style={styles.cardBrandText}>LaundroChain Pay</Text>
             </View>
             <View style={styles.tierPill}>
-              <Crown size={12} color="#FDE047" />
+              <Crown size={12} color={COLORS.secondary} />
               <Text style={styles.tierPillText}>{tierName.toUpperCase()}</Text>
             </View>
           </View>
@@ -199,7 +199,7 @@ export default function MemberWalletScreen() {
           <View style={styles.tpHeader}>
             <View style={styles.tpLeft}>
               <View style={styles.tpCrownWrap}>
-                <Coins size={18} color="#D97706" />
+                <Coins size={18} color={COLORS.primary} />
               </View>
               <View>
                 <Text style={styles.tpTitle}>
@@ -285,9 +285,9 @@ export default function MemberWalletScreen() {
                   <View style={styles.txItem}>
                     <View style={[styles.txIconWrap, isTopup ? styles.txIconTopup : styles.txIconPayment]}>
                       {isTopup ? (
-                        <ArrowDownLeft size={18} color="#059669" />
+                        <ArrowDownLeft size={18} color={COLORS.success} />
                       ) : (
-                        <ArrowUpRight size={18} color="#2563EB" />
+                        <ArrowUpRight size={18} color={COLORS.primary} />
                       )}
                     </View>
 
@@ -350,15 +350,15 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
 
-  // Digital Card (Royal Blue / Navy with gold accents)
+  // Digital Card (Primary Blue with Cyan highlights)
   cardContainer: {
-    backgroundColor: '#1E3A8A', // Deep Indigo Blue
+    backgroundColor: COLORS.primary,
     borderRadius: 22,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#1E3A8A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.22,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cardBrandText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '800',
     fontSize: 14,
     letterSpacing: 0.3,
@@ -383,13 +383,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
   },
   tierPillText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -399,13 +399,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   cardBalanceLabel: {
-    color: '#93C5FD',
+    color: COLORS.secondaryLight,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   cardBalanceAmount: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: -0.5,
@@ -413,24 +413,24 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#93C5FD',
+    color: COLORS.secondaryLight,
   },
   cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    borderTopColor: 'rgba(255, 255, 255, 0.18)',
     paddingTop: 12,
   },
   cardHolderLabel: {
-    color: '#93C5FD',
+    color: COLORS.secondaryLight,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   cardHolderName: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 13,
     fontWeight: '800',
     marginTop: 1,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: COLORS.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   tpPointsNum: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#D97706',
+    color: COLORS.primary,
   },
   progressBarWrap: {
     gap: 6,
@@ -602,10 +602,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   txIconTopup: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: COLORS.successSoft,
   },
   txIconPayment: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: COLORS.primarySoft,
   },
   txContent: {
     flex: 1,
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   txAmountTopup: {
-    color: '#059669',
+    color: COLORS.success,
   },
   txAmountPayment: {
     color: COLORS.text,
@@ -641,20 +641,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   txStatusSuccess: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: COLORS.successSoft,
   },
   txStatusPending: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: COLORS.warningSoft,
   },
   txStatusText: {
     fontSize: 9,
     fontWeight: '800',
   },
   txStatusTextSuccess: {
-    color: '#16A34A',
+    color: COLORS.success,
   },
   txStatusTextPending: {
-    color: '#B45309',
+    color: COLORS.warning,
   },
   txDivider: {
     height: 1,

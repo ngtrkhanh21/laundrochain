@@ -790,7 +790,7 @@ export default function NewOrderScreen({ navigation }) {
             activeOpacity={0.7}
           >
             <View style={[styles.catIconWrap, machineFilter === 'DRYER' && styles.catIconWrapActive]}>
-              <Wind size={18} color={machineFilter === 'DRYER' ? COLORS.white : COLORS.amberDark} />
+              <Wind size={18} color={machineFilter === 'DRYER' ? COLORS.white : COLORS.secondaryDark} />
             </View>
             <Text style={[styles.catTitle, machineFilter === 'DRYER' && styles.catTitleActive]}>
               {isVietnamese ? 'Máy Sấy' : 'Dryer'}
@@ -841,9 +841,9 @@ export default function NewOrderScreen({ navigation }) {
                     </View>
                     <View style={[styles.kindBadge, isWasher ? styles.washerKindBadge : styles.dryerKindBadge]}>
                       {isWasher ? (
-                        <WashingMachine size={11} color="#1d4ed8" />
+                        <WashingMachine size={11} color={COLORS.primary} />
                       ) : (
-                        <Wind size={11} color="#b45309" />
+                        <Wind size={11} color={COLORS.secondaryDark} />
                       )}
                       <Text style={[styles.kindBadgeText, isWasher ? styles.washerKindText : styles.dryerKindText]}>
                         {isWasher ? 'GIẶT' : 'SẤY'}
@@ -1555,10 +1555,10 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    shadowColor: '#000',
+    borderColor: COLORS.border,
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
   },
@@ -1591,7 +1591,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  // Hero Promo Banner
+  // Hero Promo Banner (Blue & White clean modern style)
   promoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1601,6 +1601,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: COLORS.bannerBorder,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   promoLeft: {
     flex: 1,
@@ -1609,28 +1614,28 @@ const styles = StyleSheet.create({
   },
   promoBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(120, 53, 15, 0.1)',
+    backgroundColor: 'rgba(25, 118, 210, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
     marginBottom: 2,
   },
   promoBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: COLORS.bannerText,
+    color: COLORS.primary,
     letterSpacing: 0.4,
   },
   promoTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: COLORS.bannerText,
+    color: COLORS.text,
     lineHeight: 23,
     letterSpacing: -0.3,
   },
   promoDesc: {
     fontSize: 12,
-    color: COLORS.bannerSubtext,
+    color: COLORS.textSecondary,
     lineHeight: 16,
     marginTop: 2,
   },
@@ -1642,11 +1647,16 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.bannerBorder,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   // Quick Wallet Strip
@@ -1731,8 +1741,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    shadowColor: '#000',
+    borderColor: COLORS.border,
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -1782,23 +1792,23 @@ const styles = StyleSheet.create({
   machineCard: {
     width: '48.5%',
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 12,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    shadowColor: '#000',
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   },
   machineCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#FAFCFF',
+    backgroundColor: '#F0F7FF',
   },
   machineCardDisabled: {
     opacity: 0.55,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
   },
   machineTop: {
     flexDirection: 'row',
@@ -1826,20 +1836,20 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   washerKindBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: COLORS.primarySoft,
   },
   dryerKindBadge: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: COLORS.secondaryLight,
   },
   kindBadgeText: {
     fontSize: 9,
     fontWeight: '800',
   },
   washerKindText: {
-    color: '#1D4ED8',
+    color: COLORS.primary,
   },
   dryerKindText: {
-    color: '#B45309',
+    color: COLORS.secondaryDark,
   },
   machineName: {
     fontSize: 13,
@@ -1928,18 +1938,18 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
+    borderTopColor: COLORS.border,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 24 : 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowColor: '#243447',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
   },
   stickyPriceCol: {
     gap: 2,
@@ -2236,15 +2246,15 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   srvBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
+    backgroundColor: COLORS.secondaryLight,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   srvBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#B45309',
+    color: COLORS.secondaryDark,
   },
   srvDescription: {
     fontSize: 11,
@@ -2473,15 +2483,15 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   recBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
+    backgroundColor: COLORS.successSoft,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   recBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#15803D',
+    color: COLORS.success,
   },
   radioCircle: {
     width: 20,

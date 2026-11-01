@@ -20,23 +20,23 @@ export default function MemberBottomTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: {
           backgroundColor: COLORS.white,
           borderTopWidth: 1,
-          borderTopColor: COLORS.borderLight,
+          borderTopColor: COLORS.border,
           height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+          paddingBottom: Platform.OS === 'ios' ? 26 : 10,
           paddingTop: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -3 },
+          shadowColor: '#243447',
+          shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.04,
-          shadowRadius: 8,
-          elevation: 8,
+          shadowRadius: 6,
+          elevation: 4,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
           marginTop: 2,
         },
       }}
@@ -48,7 +48,7 @@ export default function MemberBottomTabs() {
           tabBarLabel: isVietnamese ? 'Đặt giặt' : 'Home',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconWrap : styles.inactiveIconWrap}>
-              <WashingMachine size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+              <WashingMachine size={20} color={focused ? COLORS.primary : COLORS.textSecondary} strokeWidth={focused ? 2.4 : 1.8} />
             </View>
           ),
         }}
@@ -61,7 +61,7 @@ export default function MemberBottomTabs() {
           tabBarLabel: isVietnamese ? 'Đơn hàng' : 'Orders',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconWrap : styles.inactiveIconWrap}>
-              <Clock size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+              <Clock size={20} color={focused ? COLORS.primary : COLORS.textSecondary} strokeWidth={focused ? 2.4 : 1.8} />
             </View>
           ),
         }}
@@ -74,7 +74,7 @@ export default function MemberBottomTabs() {
           tabBarLabel: isVietnamese ? 'Ví tiền' : 'Wallet',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconWrap : styles.inactiveIconWrap}>
-              <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+              <Wallet size={20} color={focused ? COLORS.primary : COLORS.textSecondary} strokeWidth={focused ? 2.4 : 1.8} />
             </View>
           ),
         }}
@@ -87,7 +87,7 @@ export default function MemberBottomTabs() {
           tabBarLabel: isVietnamese ? 'Tài khoản' : 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconWrap : styles.inactiveIconWrap}>
-              <User size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+              <User size={20} color={focused ? COLORS.primary : COLORS.textSecondary} strokeWidth={focused ? 2.4 : 1.8} />
             </View>
           ),
         }}
@@ -100,9 +100,15 @@ const styles = StyleSheet.create({
   activeIconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   inactiveIconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
 });

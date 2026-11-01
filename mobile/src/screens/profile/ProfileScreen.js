@@ -144,7 +144,7 @@ export default function ProfileScreen({ navigation }) {
 
             <View style={styles.badgeRow}>
               <View style={styles.tierPill}>
-                <Crown size={11} color="#D97706" />
+                <Crown size={11} color={COLORS.primary} />
                 <Text style={styles.tierPillText}>
                   {user?.tierCode || 'STANDARD'}
                 </Text>
@@ -167,8 +167,8 @@ export default function ProfileScreen({ navigation }) {
 
           <View style={styles.menuCard}>
             <View style={styles.menuItem}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
-                <User size={18} color="#2563EB" />
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.primarySoft }]}>
+                <User size={18} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuLabel}>{isVietnamese ? 'Tên đăng nhập' : 'Username'}</Text>
@@ -179,8 +179,8 @@ export default function ProfileScreen({ navigation }) {
             <View style={styles.menuDivider} />
 
             <View style={styles.menuItem}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#F0FDF4' }]}>
-                <Mail size={18} color="#16A34A" />
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.secondaryLight }]}>
+                <Mail size={18} color={COLORS.secondaryDark} />
               </View>
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuLabel}>Email</Text>
@@ -191,8 +191,8 @@ export default function ProfileScreen({ navigation }) {
             <View style={styles.menuDivider} />
 
             <View style={styles.menuItem}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#FEF3C7' }]}>
-                <Phone size={18} color="#D97706" />
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.primarySoft }]}>
+                <Phone size={18} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuLabel}>{isVietnamese ? 'Số điện thoại' : 'Phone Number'}</Text>
@@ -214,8 +214,8 @@ export default function ProfileScreen({ navigation }) {
               onPress={() => setPwdModalVisible(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconBox, { backgroundColor: '#F1F5F9' }]}>
-                <Lock size={18} color={COLORS.textSecondary} />
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.primarySoft }]}>
+                <Lock size={18} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuTitle}>{isVietnamese ? 'Đổi mật khẩu' : 'Change Password'}</Text>
@@ -233,7 +233,7 @@ export default function ProfileScreen({ navigation }) {
               onPress={() => setLangModalVisible(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.primarySoft }]}>
                 <Globe size={18} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextBox}>
@@ -437,10 +437,10 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    shadowColor: '#000',
+    borderColor: COLORS.border,
+    shadowColor: '#243447',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
     gap: 14,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 20,
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
   },
   profileInfo: {
     flex: 1,
@@ -487,21 +487,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: COLORS.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primaryBorder,
   },
   tierPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#B45309',
+    color: COLORS.primary,
   },
   codePill: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.surfaceAlt,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   codePillText: {
     fontSize: 10,

@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   langItemSelected: {
-    backgroundColor: '#eff6ff',
-    borderColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primarySoft,
+    borderColor: COLORS.primary,
   },
   langLeft: {
     flexDirection: 'row',

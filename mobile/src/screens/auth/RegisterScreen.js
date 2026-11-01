@@ -307,15 +307,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorBanner: {
-    backgroundColor: COLORS.dangerLight,
+    backgroundColor: COLORS.dangerSoft,
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: COLORS.dangerLight,
   },
   errorText: {
-    color: COLORS.dangerDark,
+    color: COLORS.danger,
     fontSize: 13,
     fontWeight: '600',
   },
