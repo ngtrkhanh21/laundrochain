@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "LaundroChain",
+    "slug": "laundrochain-mobile",
+    "scheme": "laundrochain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0f4e7f",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.laundrochain.mobile"
+    },
+    "android": {
+      "package": "com.laundrochain.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f4e7f",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "http://192.168.1.202:5119"
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
+  }
+}

@@ -1,19 +1,22 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import Sidebar from './Sidebar';
+import LanguageSwitcher from './LanguageSwitcher';
 import { Menu, Search, Bell } from 'lucide-react';
 
 const ROLE_LABELS = {
-  ADMIN: 'Admin',
-  PRICING_MANAGER: 'Pricing Manager',
-  SITE_MANAGER: 'Site Manager',
-  TECHNICIAN: 'Technician',
-  MEMBER: 'Member',
+  ADMIN: { vi: 'Quản trị viên', en: 'Admin' },
+  PRICING_MANAGER: { vi: 'Quản lý giá & Rules', en: 'Pricing Manager' },
+  SITE_MANAGER: { vi: 'Quản lý cửa hàng', en: 'Site Manager' },
+  TECHNICIAN: { vi: 'Kỹ thuật viên', en: 'Technician' },
+  MEMBER: { vi: 'Thành viên', en: 'Member' },
 };
 
 export default function DashboardLayout({ children }) {
   const { user } = useAuth();
+  const { language, isVietnamese } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // User details
@@ -27,15 +30,25 @@ export default function DashboardLayout({ children }) {
     .join('')
     .toUpperCase() || 'AC';
 
-  const primaryRole = user?.roles?.[0] || 'ADMIN';
-  const roleLabel = ROLE_LABELS[primaryRole] || 'Operations admin';
+  const primaryRole = user?.activeRole || user?.roles?.[0] || 'ADMIN';
+  const roleLabel = ROLE_LABELS[primaryRole]?.[language] || (isVietnamese ? 'Quản trị vận hành' : 'Operations admin');
 
-  const formattedDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  // Format date according to language
+  const formattedDate = isVietnamese
+    ? new Date().toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
+  const greeting = isVietnamese ? `Xin chào, ${firstName}` : `Good morning, ${firstName}`;
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-slate-900">
@@ -66,28 +79,37 @@ export default function DashboardLayout({ children }) {
               <Menu className="size-5" />
             </button>
             <div>
-              <p className="text-[11px] font-medium text-slate-400">{formattedDate}</p>
+              <p className="text-[11px] font-medium text-slate-400 capitalize">{formattedDate}</p>
               <h1 className="mt-0.5 text-[17px] font-semibold tracking-[-0.02em] text-slate-900">
-                Good morning, {firstName}
+                {greeting}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3.5">
+            {/* Search Button */}
             <button
               className="hidden rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 sm:block"
-              aria-label="Search"
+              aria-label={isVietnamese ? 'Tìm kiếm' : 'Search'}
             >
               <Search className="size-[18px]" />
             </button>
+
+            {/* Language Switcher Dropdown (nằm kế bên icon tìm kiếm) */}
+            <LanguageSwitcher />
+
+            {/* Notification Bell */}
             <button
               className="relative rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              aria-label="Notifications"
+              aria-label={isVietnamese ? 'Thông báo' : 'Notifications'}
             >
               <Bell className="size-[18px]" />
               <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-blue-500 ring-2 ring-white" />
             </button>
+
             <div className="h-6 w-px bg-slate-200" />
+
+            {/* User Profile */}
             <NavLink
               to="/dashboard/profile"
               className="flex items-center gap-2 text-inherit no-underline"

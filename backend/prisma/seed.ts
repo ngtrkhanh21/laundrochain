@@ -1,5 +1,6 @@
 import { PrismaClient, RoleType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { computeBundleIntegrityHash } from '../src/shared/pricing-engine';
 
 const prisma = new PrismaClient();
 
@@ -71,6 +72,131 @@ async function main() {
 
     console.log(`  ✓ User: ${user.email} → Role: ${userData.role}`);
   }
+
+  // 3. Create default Price Bundle
+  console.log('\n📦 Seeding default Price Bundle...');
+  const basePrices = {
+    WASH_DRY: 25000,
+    WASH_ONLY: 15000,
+    DRY_ONLY: 15000,
+    IRON: 12000,
+    EXPRESS: 40000,
+  };
+  const effectiveFrom = new Date('2026-01-01T00:00:00.000Z');
+  const bundleRules = [
+    {
+      ruleId: 'RULE-PEAK-HOUR',
+      ruleName: 'Phụ thu khung giờ cao điểm (17h - 21h)',
+      description: 'Phụ thu thêm 10% trong khung giờ cao điểm để điều tiết công suất máy.',
+      ruleType: 'TIME_PEAK',
+      applicableTiers: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      timeSlotCondition: 'PEAK',
+      discountPercent: -10,
+      priceFloor: 15000,
+      priority: 10,
+    },
+    {
+      ruleId: 'RULE-TIER-SILVER',
+      ruleName: 'Đặc quyền thành viên Silver (-5%)',
+      description: 'Giảm 5% cho thành viên hạng Silver trên tất cả các dịch vụ.',
+      ruleType: 'TIER_DISCOUNT',
+      applicableTiers: ['SILVER'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      discountPercent: 5,
+      priceFloor: 12000,
+      priority: 20,
+    },
+    {
+      ruleId: 'RULE-TIER-GOLD',
+      ruleName: 'Đặc quyền thành viên Gold (-10%)',
+      description: 'Giảm 10% cho thành viên hạng Gold trên tất cả các dịch vụ.',
+      ruleType: 'TIER_DISCOUNT',
+      applicableTiers: ['GOLD'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      discountPercent: 10,
+      priceFloor: 12000,
+      priority: 20,
+    },
+    {
+      ruleId: 'RULE-TIER-PLATINUM',
+      ruleName: 'Đặc quyền thành viên Platinum (-15%)',
+      description: 'Giảm 15% cho thành viên hạng Platinum trên tất cả các dịch vụ.',
+      ruleType: 'TIER_DISCOUNT',
+      applicableTiers: ['PLATINUM'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      discountPercent: 15,
+      priceFloor: 10000,
+      priority: 20,
+    },
+    {
+      ruleId: 'RULE-BULK-7KG',
+      ruleName: 'Ưu đãi giặt nhiều (>= 7kg)',
+      description: 'Giảm ngay 10.000đ cho đơn giặt từ 7kg trở lên.',
+      ruleType: 'WEIGHT_VOLUME',
+      applicableTiers: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY'],
+      minWeightKg: 7,
+      discountAmountFixed: 10000,
+      priceFloor: 15000,
+      priority: 30,
+    },
+    {
+      ruleId: 'RULE-VOUCHER-GIATXANH',
+      ruleName: 'Voucher GIATXANH (-20%)',
+      description: 'Giảm 20% khi nhập mã voucher GIATXANH.',
+      ruleType: 'VOUCHER',
+      applicableTiers: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      voucherCode: 'GIATXANH',
+      discountPercent: 20,
+      priceFloor: 15000,
+      priority: 40,
+    },
+    {
+      ruleId: 'RULE-VOUCHER-MEGA50',
+      ruleName: 'Voucher tri ân MEGA50 (-50%)',
+      description: 'Giảm 50% tổng đơn hàng (bảo vệ bởi giá sàn 20.000đ).',
+      ruleType: 'VOUCHER',
+      applicableTiers: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'],
+      applicableServices: ['WASH_DRY', 'WASH_ONLY', 'DRY_ONLY', 'IRON', 'EXPRESS'],
+      voucherCode: 'MEGA50',
+      discountPercent: 50,
+      priceFloor: 20000,
+      priority: 40,
+    },
+  ];
+
+  const integrityHash = computeBundleIntegrityHash({
+    bundleVersion: '1.2.0',
+    basePricePerKg: basePrices,
+    rules: bundleRules,
+    effectiveFrom,
+  });
+
+  await prisma.priceBundle.upsert({
+    where: { version: '1.2.0' },
+    update: {
+      integrityHash,
+      basePrices,
+      rules: bundleRules,
+      status: 'PUBLISHED',
+    },
+    create: {
+      version: '1.2.0',
+      name: 'Bảng giá chuẩn chuỗi LaundroChain 2026',
+      description: 'Bao gồm chiết khấu cấp bậc thành viên, phụ thu giờ cao điểm và khuyến mãi xếp chồng.',
+      status: 'PUBLISHED',
+      effectiveFrom,
+      effectiveTo: null,
+      integrityHash,
+      signature: 'ED25519_SIG_DEMO_2026_LAUNDROCHAIN_VALIDATED',
+      publishedBy: 'pricing@laundrochain.vn',
+      basePrices,
+      rules: bundleRules,
+    },
+  });
+  console.log(`  ✓ PriceBundle: v1.2.0 (Hash: ${integrityHash.substring(0, 20)}...)`);
 
   console.log('\n✅ Seed completed successfully!');
   console.log(`\n📝 Default password for all users: "${DEFAULT_PASSWORD}"`);

@@ -14,7 +14,7 @@ Khi sinh code, AI BẮT BUỘC tuân thủ các nguyên tắc sau:
 - KIẾN TRÚC PHÂN BỔ: Hệ thống gồm 2 thành phần chính:
   + `backend/`: NestJS, TypeScript, Prisma ORM, PostgreSQL.
   + `frontend/`: React, TypeScript, Tailwind CSS, Vite.
-  + Thư viện tính giá Pure Evaluator nằm độc lập để có thể chia sẻ giữa Backend và Ki-ốt.
+  + Thư viện tính giá Pure Evaluator nằm độc lập để có thể chia sẻ giữa Backend và Ki-ốt. 
 - BẢO MẬT & PHÂN QUYỀN (RBAC): Toàn bộ API nghiệp vụ phải bảo vệ qua JWT Guard và RolesGuard.
 
 ## 3. CÁC VAI TRÒ HỆ THỐNG (5 ROLES CHUẨN ĐỀ BÀI)

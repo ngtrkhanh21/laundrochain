@@ -1,19 +1,18 @@
-﻿import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Zap,
   ChevronDown,
-  LayoutDashboard,
   PackageCheck,
-  Gauge,
-  BarChart3,
   Users,
   Settings,
   MoreHorizontal,
   User,
   LogOut,
   X,
+  Store,
   Building2,
   Cpu,
   FileText,
@@ -28,127 +27,196 @@ import {
   Wallet,
   DollarSign,
   Search,
+  Check,
+  QrCode,
 } from 'lucide-react';
 
-const ROLE_CONFIGS = {
-  ADMIN: {
-    label: 'Quản trị viên',
-    workspaceName: 'Main operations',
-    workspaceBadge: 'LC',
-    group1: 'Manage',
-    navItems: [
-      { label: 'Overview', icon: LayoutDashboard, path: '/dashboard', end: true },
-      { label: 'Quản lý người dùng', icon: Users, path: '/dashboard/users' },
-      { label: 'Chi nhánh & Cửa hàng', icon: Building2, path: '/dashboard/branches' },
-      { label: 'Thiết bị IoT', icon: Cpu, path: '/dashboard/devices', badge: '42' },
-    ],
-    group2: 'Workspace',
-    workspaceItems: [
-      { label: 'Audit Log', icon: FileText, path: '/dashboard/audit-log' },
-      { label: 'Cài đặt hệ thống', icon: Settings, path: '/dashboard/settings' },
-    ],
+export const WORKSPACES = [
+  {
+    role: 'ADMIN',
+    badge: 'LC',
+    badgeColor: 'bg-blue-100 text-blue-700',
+    title: 'Main operations',
+    labelVi: 'Quản trị viên',
+    labelEn: 'Administrator',
   },
-  PRICING_MANAGER: {
-    label: 'Pricing Manager',
-    workspaceName: 'Pricing & Rules',
-    workspaceBadge: 'PR',
-    group1: 'Manage',
-    navItems: [
-      { label: 'Overview', icon: LayoutDashboard, path: '/dashboard', end: true },
-      { label: 'Cấu hình giá (DMN)', icon: SlidersHorizontal, path: '/dashboard/pricing-rules' },
-      { label: 'Price Bundles', icon: PackageCheck, path: '/dashboard/price-bundles', badge: 'v2.4' },
-      { label: 'Phân tích tĩnh (WP3)', icon: ShieldCheck, path: '/dashboard/static-analysis' },
-    ],
-    group2: 'Workspace',
-    workspaceItems: [
-      { label: 'Voucher & Promotion', icon: Tag, path: '/dashboard/promotions' },
-      { label: 'Cài đặt', icon: Settings, path: '/dashboard/settings' },
-    ],
+  {
+    role: 'PRICING_MANAGER',
+    badge: 'PR',
+    badgeColor: 'bg-amber-100 text-amber-700',
+    title: 'Pricing & Rules',
+    labelVi: 'Quản lý giá & Rules',
+    labelEn: 'Pricing Manager',
   },
-  SITE_MANAGER: {
-    label: 'Site Manager',
-    workspaceName: 'Store operations',
-    workspaceBadge: 'SM',
-    group1: 'Manage',
-    navItems: [
-      { label: 'Overview', icon: LayoutDashboard, path: '/dashboard', end: true },
-      { label: 'Giám sát máy móc', icon: WashingMachine, path: '/dashboard/machines', badge: '42/45' },
-      { label: 'Cảnh báo & Sự cố', icon: AlertTriangle, path: '/dashboard/alerts', badge: '2' },
-      { label: 'Lịch sử đơn giặt', icon: History, path: '/dashboard/orders' },
-    ],
-    group2: 'Workspace',
-    workspaceItems: [
-      { label: 'Tra cứu Rule Trace', icon: Search, path: '/dashboard/rule-trace' },
-      { label: 'Cài đặt cửa hàng', icon: Settings, path: '/dashboard/settings' },
-    ],
+  {
+    role: 'SITE_MANAGER',
+    badge: 'SM',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+    title: 'Store operations',
+    labelVi: 'Quản lý cửa hàng',
+    labelEn: 'Site Manager',
   },
-  TECHNICIAN: {
-    label: 'Technician',
-    workspaceName: 'Field maintenance',
-    workspaceBadge: 'TC',
-    group1: 'Manage',
-    navItems: [
-      { label: 'Overview', icon: LayoutDashboard, path: '/dashboard', end: true },
-      { label: 'Sửa chữa máy', icon: Wrench, path: '/dashboard/repairs', badge: '3' },
-      { label: 'Quản lý thiết bị', icon: Cpu, path: '/dashboard/equipment' },
-    ],
-    group2: 'Workspace',
-    workspaceItems: [
-      { label: 'Thay thế Ki-ốt', icon: RefreshCw, path: '/dashboard/kiosk-swap' },
-      { label: 'Cài đặt', icon: Settings, path: '/dashboard/settings' },
-    ],
+  {
+    role: 'TECHNICIAN',
+    badge: 'TC',
+    badgeColor: 'bg-cyan-100 text-cyan-700',
+    title: 'Field maintenance',
+    labelVi: 'Kỹ thuật viên',
+    labelEn: 'Technician',
   },
-  MEMBER: {
-    label: 'Member',
-    workspaceName: 'Member portal',
-    workspaceBadge: 'MB',
-    group1: 'Manage',
-    navItems: [
-      { label: 'Overview', icon: LayoutDashboard, path: '/dashboard', end: true },
-      { label: 'Đặt lệnh giặt', icon: WashingMachine, path: '/dashboard/new-order' },
-      { label: 'Lịch sử giặt', icon: History, path: '/dashboard/my-orders' },
-    ],
-    group2: 'Workspace',
-    workspaceItems: [
-      { label: 'Ví & Nạp tiền', icon: Wallet, path: '/dashboard/wallet' },
-      { label: 'Lịch sử giao dịch', icon: DollarSign, path: '/dashboard/transactions' },
-    ],
+  {
+    role: 'MEMBER',
+    badge: 'MB',
+    badgeColor: 'bg-indigo-100 text-indigo-700',
+    title: 'Member portal',
+    labelVi: 'Thành viên',
+    labelEn: 'Member',
   },
-};
+];
 
-function getRoleConfig(roles) {
-  const priority = ['ADMIN', 'PRICING_MANAGER', 'SITE_MANAGER', 'TECHNICIAN', 'MEMBER'];
-  if (Array.isArray(roles)) {
-    for (const role of priority) {
-      if (roles.includes(role)) {
-        return { config: ROLE_CONFIGS[role], primaryRole: role };
-      }
-    }
+function getRoleConfig(user, t, isVietnamese = true) {
+  let primaryRole = user?.activeRole || user?.roles?.[0] || 'MEMBER';
+
+  if (!['ADMIN', 'PRICING_MANAGER', 'SITE_MANAGER', 'TECHNICIAN', 'MEMBER'].includes(primaryRole)) {
+    const roles = user?.roles || [];
+    if (roles.includes('ADMIN')) primaryRole = 'ADMIN';
+    else if (roles.includes('PRICING_MANAGER')) primaryRole = 'PRICING_MANAGER';
+    else if (roles.includes('SITE_MANAGER')) primaryRole = 'SITE_MANAGER';
+    else if (roles.includes('TECHNICIAN')) primaryRole = 'TECHNICIAN';
+    else primaryRole = 'MEMBER';
   }
-  return { config: ROLE_CONFIGS.ADMIN, primaryRole: 'ADMIN' };
+
+  const configs = {
+    ADMIN: {
+      label: t('roles.ADMIN', 'Quản trị viên'),
+      workspaceName: t('workspaces.ADMIN', 'Main operations'),
+      workspaceBadge: 'LC',
+      badgeColor: 'bg-blue-100 text-blue-700',
+      navItems: [
+        { label: t('sidebar.users', 'Quản lý người dùng'), icon: Users, path: '/dashboard/users' },
+        { label: t('sidebar.brands', 'Quản lý thương hiệu'), icon: Store, path: '/dashboard/brands' },
+        { label: t('sidebar.branches', 'Chi nhánh & Cửa hàng'), icon: Building2, path: '/dashboard/branches' },
+        { label: t('sidebar.devices', 'Thiết bị IoT'), icon: Cpu, path: '/dashboard/devices', badge: '42' },
+        { label: t('sidebar.auditLog', 'Audit Log'), icon: FileText, path: '/dashboard/audit-log' },
+        { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
+      ],
+    },
+    PRICING_MANAGER: {
+      label: t('roles.PRICING_MANAGER', 'Pricing Manager'),
+      workspaceName: t('workspaces.PRICING_MANAGER', 'Pricing & Rules'),
+      workspaceBadge: 'PR',
+      badgeColor: 'bg-amber-100 text-amber-700',
+      navItems: [
+        { label: t('sidebar.pricingRules', 'Cấu hình giá (DMN)'), icon: SlidersHorizontal, path: '/dashboard/pricing-rules' },
+        { label: t('sidebar.priceBundles', 'Price Bundles'), icon: PackageCheck, path: '/dashboard/price-bundles', badge: 'v2.4' },
+        { label: t('sidebar.staticAnalysis', 'Phân tích tĩnh (WP3)'), icon: ShieldCheck, path: '/dashboard/static-analysis' },
+        { label: t('sidebar.promotions', 'Voucher & Promotion'), icon: Tag, path: '/dashboard/promotions' },
+        { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
+      ],
+    },
+    SITE_MANAGER: {
+      label: t('roles.SITE_MANAGER', 'Site Manager'),
+      workspaceName: t('workspaces.SITE_MANAGER', 'Store operations'),
+      workspaceBadge: 'SM',
+      badgeColor: 'bg-emerald-100 text-emerald-700',
+      navItems: [
+        { label: isVietnamese ? 'Dịch vụ giặt (Kiosk / Quầy)' : 'New Laundry Order', icon: WashingMachine, path: '/dashboard/new-order' },
+        { label: isVietnamese ? 'Quản lý đơn hàng trạm' : 'Store Orders', icon: History, path: '/dashboard/orders' },
+        { label: t('sidebar.machines', 'Giám sát máy móc'), icon: WashingMachine, path: '/dashboard/machines', badge: '42/45' },
+        { label: t('sidebar.alerts', 'Cảnh báo & Sự cố'), icon: AlertTriangle, path: '/dashboard/alerts', badge: '2' },
+        { label: t('sidebar.brands', 'Thương hiệu'), icon: Store, path: '/dashboard/brands' },
+        { label: t('sidebar.ruleTrace', 'Tra cứu Rule Trace'), icon: Search, path: '/dashboard/rule-trace' },
+        { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
+      ],
+    },
+    TECHNICIAN: {
+      label: t('roles.TECHNICIAN', 'Technician'),
+      workspaceName: t('workspaces.TECHNICIAN', 'Field maintenance'),
+      workspaceBadge: 'TC',
+      badgeColor: 'bg-cyan-100 text-cyan-700',
+      navItems: [
+        { label: t('sidebar.repairs', 'Sửa chữa máy'), icon: Wrench, path: '/dashboard/repairs', badge: '3' },
+        { label: t('sidebar.equipment', 'Quản lý thiết bị'), icon: Cpu, path: '/dashboard/equipment' },
+        { label: t('sidebar.kioskSwap', 'Thay thế Ki-ốt'), icon: RefreshCw, path: '/dashboard/kiosk-swap' },
+        { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
+      ],
+    },
+    MEMBER: {
+      label: t('roles.MEMBER', 'Member'),
+      workspaceName: t('workspaces.MEMBER', 'Member portal'),
+      workspaceBadge: 'MB',
+      badgeColor: 'bg-indigo-100 text-indigo-700',
+      navItems: [
+        { label: t('sidebar.newOrder', 'Dịch vụ'), icon: WashingMachine, path: '/dashboard/new-order' },
+        {
+          label: user?.isGuest
+            ? (isVietnamese ? 'Tra cứu đơn hàng' : 'Track Orders')
+            : (isVietnamese ? 'Lịch sử đơn hàng' : 'My Orders'),
+          icon: user?.isGuest ? Search : History,
+          path: '/dashboard/my-orders',
+        },
+        ...(!user?.isGuest
+          ? [
+            { label: t('sidebar.wallet', 'Ví & Nạp tiền'), icon: Wallet, path: '/dashboard/wallet' },
+            { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
+          ]
+          : []),
+      ],
+    },
+  };
+
+  return { config: configs[primaryRole] || configs.MEMBER, primaryRole };
 }
 
 export default function Sidebar({ onClose, isMobile = false }) {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
+  const { t, isVietnamese } = useLanguage();
   const navigate = useNavigate();
+
+  const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const workspaceRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (workspaceRef.current && !workspaceRef.current.contains(event.target)) {
+        setWorkspaceDropdownOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Dynamic role config
-  const { config, primaryRole } = getRoleConfig(user?.roles);
+  const { config, primaryRole } = getRoleConfig(user, t, isVietnamese);
 
   // User details
-  const displayName = user?.fullName || 'Người dùng';
-  const initials = displayName
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(-2)
-    .join('')
-    .toUpperCase() || 'LC';
+  const displayName = user?.isGuest
+    ? (isVietnamese ? 'Khách vãng lai' : 'Walk-in Guest')
+    : user?.fullName || user?.username || 'Người dùng';
+  const initials = user?.isGuest
+    ? 'KV'
+    : displayName
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(-2)
+      .join('')
+      .toUpperCase() || 'LC';
 
-  const roleLabel = config.label || primaryRole;
+  const roleLabel = user?.isGuest
+    ? (isVietnamese ? 'Khách Ki-ốt' : 'Kiosk Guest')
+    : config.label || primaryRole;
 
   const handleLogout = () => {
+    if (onClose) onClose();
     logout();
     navigate('/login');
   };
@@ -170,7 +238,7 @@ export default function Sidebar({ onClose, isMobile = false }) {
         {/* 2. Header & Logo */}
         <div className="flex items-center justify-between px-2 py-3 mb-4">
           <NavLink
-            to="/dashboard"
+            to={config.navItems?.[0]?.path || '/dashboard'}
             onClick={handleNavClick}
             className="flex items-center gap-3 no-underline"
           >
@@ -184,7 +252,7 @@ export default function Sidebar({ onClose, isMobile = false }) {
           {isMobile && (
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
               aria-label="Close menu"
             >
               <X className="size-5" />
@@ -192,88 +260,156 @@ export default function Sidebar({ onClose, isMobile = false }) {
           )}
         </div>
 
-        {/* 3. Selector chi nhánh / Workspace (theo Role) */}
-        <button
-          type="button"
-          className="w-full flex items-center justify-between p-2.5 mb-6 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-colors text-left cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
-              {config.workspaceBadge}
-            </div>
-            <span className="text-sm font-semibold text-slate-700 truncate">
-              {config.workspaceName}
-            </span>
-          </div>
-          <ChevronDown className="size-4 text-slate-400 shrink-0 ml-1" />
-        </button>
+        {/* 3. Selector Workspace Dropdown (Hỗ trợ chuyển đổi trực tiếp 5 vai trò) */}
+        {!user?.isGuest ? (
+          <div className="relative mb-6" ref={workspaceRef}>
+            <button
+              type="button"
+              onClick={() => setWorkspaceDropdownOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100/90 transition-all cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              title={isVietnamese ? 'Nhấn để chuyển đổi Workspace / Vai trò' : 'Click to switch Workspace / Role'}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-7 h-7 rounded-lg ${config.badgeColor} font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
+                  {config.workspaceBadge}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-800 truncate leading-tight">
+                    {config.workspaceName}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
+                    {roleLabel}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown
+                className={`size-4 text-slate-400 shrink-0 transition-transform duration-200 ${workspaceDropdownOpen ? 'rotate-180 text-blue-600' : ''
+                  }`}
+              />
+            </button>
 
-        {/* 4. Danh mục Menu & Khoảng cách (Phân quyền theo Role) */}
-        <nav className="flex-1 space-y-1" aria-label="Main navigation">
-          {/* Nhóm 1: MANAGE */}
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2 block">
-            {config.group1}
-          </span>
+            {/* Danh sách 5 Không gian làm việc / Role Dropdown */}
+            {workspaceDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50 animate-fade-in">
+                <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {isVietnamese ? 'CHỌN ROLE / KHÔNG GIAN' : 'SWITCH WORKSPACE'}
+                </div>
+                <div className="space-y-1">
+                  {WORKSPACES.map((ws) => {
+                    const isActive = primaryRole === ws.role;
+                    return (
+                      <button
+                        key={ws.role}
+                        type="button"
+                        onClick={() => {
+                          switchRole(ws.role);
+                          setWorkspaceDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer border-0 ${isActive
+                          ? 'bg-blue-50 text-blue-700 font-semibold'
+                          : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-6 h-6 rounded-md ${ws.badgeColor} font-bold text-[10px] flex items-center justify-center shrink-0`}
+                          >
+                            {ws.badge}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate leading-tight">
+                              {t(`workspaces.${ws.role}`, ws.title)}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
+                              {t(`roles.${ws.role}`, isVietnamese ? ws.labelVi : ws.labelEn)}
+                            </p>
+                          </div>
+                        </div>
+                        {isActive && <Check className="size-3.5 text-blue-600 shrink-0 ml-1" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mb-6 p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/70">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                KV
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-emerald-950 truncate leading-tight">
+                  {isVietnamese ? 'Khách vãng lai' : 'Walk-in Guest'}
+                </p>
+                <p className="text-[10px] text-emerald-600 truncate leading-tight mt-0.5">
+                  {isVietnamese ? 'Phiên dùng Ki-ốt' : 'Kiosk Session'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Menu Items */}
+        <nav className="space-y-1">
           {config.navItems.map(({ label, icon: Icon, path, end, badge }) => (
             <NavLink
-              key={label}
+              key={path}
               to={path}
               end={end}
               onClick={handleNavClick}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all no-underline ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all no-underline ${isActive
+                  ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`
               }
             >
-              <Icon className="size-[18px] shrink-0" />
-              <span className="truncate">{label}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon className="size-[18px] shrink-0" />
+                <span className="truncate">{label}</span>
+              </div>
               {badge && (
-                <span className="ml-auto bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-700">
                   {badge}
                 </span>
               )}
             </NavLink>
           ))}
-
-          {/* Nhóm 2: WORKSPACE */}
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mt-6 mb-2 block">
-            {config.group2}
-          </span>
-          {config.workspaceItems.map(({ label, icon: Icon, path }) => (
-            <NavLink
-              key={label}
-              to={path}
-              onClick={handleNavClick}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all no-underline ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`
-              }
-            >
-              <Icon className="size-[18px] shrink-0" />
-              <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
         </nav>
       </div>
 
+      {/* 4.5. Nút Quét QR Đăng nhập Ki-ốt (chỉ hiện cho tài khoản thường / mobile) */}
+      {!user?.isGuest && (
+        <div className="pt-3 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-kiosk-qr-scanner'));
+              handleNavClick();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-[#0f4e7f] border border-blue-200/80 text-xs font-bold transition shadow-xs active:scale-[0.98] cursor-pointer"
+            title={isVietnamese ? 'Quét mã QR trên màn hình Ki-ốt để đăng nhập' : 'Scan Kiosk QR code to login'}
+          >
+            <QrCode className="size-4 shrink-0 text-blue-600" />
+            <span>{isVietnamese ? 'Quét QR Ki-ốt' : 'Scan Kiosk QR'}</span>
+          </button>
+        </div>
+      )}
+
       {/* 5. Footer người dùng ở dưới cùng */}
-      <div className="relative mt-auto pt-4 border-t border-slate-200">
+      <div className="relative mt-auto pt-3 border-t border-slate-200" ref={userMenuRef}>
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+            <div className={`w-9 h-9 rounded-full ${user?.isGuest ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'} font-bold text-xs flex items-center justify-center shrink-0`}>
               {initials}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-800 truncate leading-tight">
                 {displayName}
               </p>
-              <p className="text-xs text-slate-400 truncate leading-tight mt-0.5">
+              <p className={`text-xs ${user?.isGuest ? 'text-emerald-600 font-medium' : 'text-slate-400'} truncate leading-tight mt-0.5`}>
                 {roleLabel}
               </p>
             </div>
@@ -282,7 +418,7 @@ export default function Sidebar({ onClose, isMobile = false }) {
             type="button"
             onClick={() => setUserMenuOpen((prev) => !prev)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 shrink-0 cursor-pointer"
-            aria-label="Account options"
+            aria-label={t('sidebar.accountOptions', 'Tùy chọn tài khoản')}
           >
             <MoreHorizontal className="size-4" />
           </button>
@@ -290,29 +426,95 @@ export default function Sidebar({ onClose, isMobile = false }) {
 
         {/* Dropdown Options */}
         {userMenuOpen && (
-          <div className="absolute bottom-full left-2 right-2 mb-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
-            <NavLink
-              to="/dashboard/profile"
-              onClick={() => {
-                setUserMenuOpen(false);
-                handleNavClick();
-              }}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 no-underline"
-            >
-              <User className="size-3.5 text-slate-500" />
-              Hồ sơ cá nhân
-            </NavLink>
+          <div className="absolute bottom-full left-2 right-2 mb-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50 animate-fade-in">
+            {!user?.isGuest && (
+              <NavLink
+                to="/dashboard/profile"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  handleNavClick();
+                }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 no-underline"
+              >
+                <User className="size-3.5 text-slate-500" />
+                {t('profile.title', 'Hồ sơ người dùng')}
+              </NavLink>
+            )}
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={() => {
+                setUserMenuOpen(false);
+                setShowLogoutConfirm(true);
+              }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 cursor-pointer border-0 bg-transparent"
             >
               <LogOut className="size-3.5" />
-              Đăng xuất
+              {user?.isGuest
+                ? (isVietnamese ? 'Kết thúc phiên' : 'End session')
+                : t('common.logout', 'Đăng xuất')}
             </button>
           </div>
         )}
       </div>
+
+      {/* Modal xác nhận Đăng xuất / Kết thúc phiên */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 overflow-hidden flex flex-col text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon cảnh báo */}
+            <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto mb-3.5 border border-red-100 dark:border-red-900/50 shadow-2xs">
+              <LogOut className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">
+              {user?.isGuest
+                ? (isVietnamese ? 'Xác nhận kết thúc phiên' : 'Confirm End Session')
+                : (isVietnamese ? 'Xác nhận đăng xuất' : 'Confirm Logout')}
+            </h3>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+              {user?.isGuest
+                ? (isVietnamese
+                  ? 'Bạn có chắc chắn muốn kết thúc phiên làm việc này không? Toàn bộ phiên Ki-ốt hiện tại sẽ được đóng.'
+                  : 'Are you sure you want to end this session? The current kiosk session will be closed.')
+                : (isVietnamese
+                  ? 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không? Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng dịch vụ.'
+                  : 'Are you sure you want to log out? You will need to log in again to access your account.')}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs transition cursor-pointer"
+              >
+                {isVietnamese ? 'Hủy' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  handleLogout();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>
+                  {user?.isGuest
+                    ? (isVietnamese ? 'Kết thúc phiên' : 'End Session')
+                    : (isVietnamese ? 'Đăng xuất' : 'Log Out')}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

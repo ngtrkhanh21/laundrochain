@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import {
   WashingMachine,
   Eye,
@@ -18,52 +21,53 @@ import {
 // Tài khoản mẫu 5 roles để demo nhanh
 const QUICK_LOGIN_ACCOUNTS = [
   {
-    email: 'admin@laundrochain.vn',
-    password: '123456',
+    username: 'admin_demo',
+    password: 'Admin123!',
+    label: 'Demo User',
+    role: 'MEMBER',
+    icon: User,
+    color: '#3b82f6',
+  },
+  {
+    username: 'admin',
+    password: 'Admin123!',
     label: 'Admin',
     role: 'ADMIN',
     icon: Shield,
     color: '#a855f7',
   },
   {
-    email: 'pricing@laundrochain.vn',
-    password: '123456',
+    username: 'pricing',
+    password: 'Admin123!',
     label: 'Pricing Mgr',
     role: 'PRICING_MANAGER',
     icon: DollarSign,
     color: '#f59e0b',
   },
   {
-    email: 'sitemgr@laundrochain.vn',
-    password: '123456',
+    username: 'sitemgr',
+    password: 'Admin123!',
     label: 'Site Mgr',
     role: 'SITE_MANAGER',
     icon: Building2,
     color: '#10b981',
   },
   {
-    email: 'tech@laundrochain.vn',
-    password: '123456',
+    username: 'tech',
+    password: 'Admin123!',
     label: 'Technician',
     role: 'TECHNICIAN',
     icon: Wrench,
     color: '#06b6d4',
   },
-  {
-    email: 'member@gmail.com',
-    password: '123456',
-    label: 'Member',
-    role: 'MEMBER',
-    icon: User,
-    color: '#3b82f6',
-  },
 ];
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, register, loading } = useAuth();
+  const { t } = useLanguage();
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [quickLoading, setQuickLoading] = useState(null);
@@ -77,12 +81,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!form.email || !form.password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu');
+    if (!form.username || !form.password) {
+      setError(t('auth.fillEmailAndPassword', 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu'));
       return;
     }
 
-    const result = await login(form.email, form.password);
+    const result = await login(form.username.trim(), form.password);
     if (result.success) {
       navigate('/dashboard');
     } else {
@@ -93,11 +97,28 @@ export default function LoginPage() {
   const handleQuickLogin = async (account) => {
     setQuickLoading(account.role);
     setError('');
-    const result = await login(account.email, account.password);
+
+    let result = await login(account.username, account.password, account.role);
+
+    // Nếu chưa tồn tại tài khoản trên Backend mới, tự động đăng ký rồi đăng nhập
+    if (!result.success) {
+      const regRes = await register({
+        username: account.username,
+        password: account.password,
+        confirmPassword: account.password,
+      });
+      if (regRes.success) {
+        result = await login(account.username, account.password, account.role);
+      }
+    }
+
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error || 'Đăng nhập nhanh thất bại. Hãy chắc chắn Backend đang chạy và đã seed dữ liệu.');
+      setError(
+        result.error ||
+          t('auth.quickLoginFailed', 'Đăng nhập nhanh thất bại. Hãy chắc chắn Backend đang hoạt động.'),
+      );
     }
     setQuickLoading(null);
   };
@@ -117,6 +138,11 @@ export default function LoginPage() {
       {/* Background blobs */}
       <div className="bg-blob bg-blob-1" />
       <div className="bg-blob bg-blob-2" />
+
+      {/* Top right language switcher */}
+      <div style={{ position: 'absolute', top: 20, right: 24, zIndex: 10 }}>
+        <LanguageSwitcher align="right" />
+      </div>
 
       <div
         className="glass-card animate-fade-in"
@@ -150,7 +176,7 @@ export default function LoginPage() {
             LaundroChain
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
-            Hệ thống quản trị chuỗi tiệm giặt thông minh
+            {t('common.appTagline', 'Hệ thống quản trị chuỗi tiệm giặt thông minh')}
           </p>
         </div>
 
@@ -178,7 +204,7 @@ export default function LoginPage() {
             }}
           >
             <Zap size={12} />
-            Demo nhanh — Bấm 1 click
+            {t('auth.quickDemoTitle', 'DEMO NHANH — BẤM 1 CLICK')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
             {QUICK_LOGIN_ACCOUNTS.map((acc) => {
@@ -200,9 +226,12 @@ export default function LoginPage() {
                     background: `${acc.color}10`,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    opacity: (loading || (quickLoading !== null && !isLoading)) ? 0.5 : 1,
+                    opacity: loading || (quickLoading !== null && !isLoading) ? 0.5 : 1,
                   }}
-                  title={`Đăng nhập nhanh: ${acc.email}`}
+                  title={`${t('auth.quickLoginTooltip', 'Đăng nhập nhanh:')} ${t(
+                    'roles.' + acc.role,
+                    acc.label,
+                  )} (${acc.username})`}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = `${acc.color}22`;
                     e.currentTarget.style.borderColor = acc.color;
@@ -222,7 +251,15 @@ export default function LoginPage() {
                   ) : (
                     <Icon size={18} color={acc.color} />
                   )}
-                  <span style={{ fontSize: '0.65rem', fontWeight: 600, color: acc.color, lineHeight: 1.2, textAlign: 'center' }}>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      color: acc.color,
+                      lineHeight: 1.2,
+                      textAlign: 'center',
+                    }}
+                  >
                     {acc.label}
                   </span>
                 </button>
@@ -231,8 +268,13 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Google Sign In */}
+        <div style={{ marginBottom: 18 }}>
+          <GoogleSignInButton mode="login" />
+        </div>
+
         {/* Divider */}
-        <div className="divider-text">hoặc đăng nhập thủ công</div>
+        <div className="divider-text">{t('auth.manualLoginText', 'hoặc đăng nhập thủ công')}</div>
 
         {/* Error alert */}
         {error && (
@@ -263,20 +305,20 @@ export default function LoginPage() {
           <div className="form-group">
             <label
               className="form-label"
-              htmlFor="email"
+              htmlFor="username"
               style={error ? { color: '#dc2626', fontWeight: 600 } : {}}
             >
-              Email
+              {t('auth.usernameLabel', 'Tên đăng nhập')}
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="username"
+              name="username"
+              type="text"
               className={`form-input ${error ? 'input-error' : ''}`}
-              placeholder="example@email.com"
-              value={form.email}
+              placeholder={t('auth.usernamePlaceholder', 'Nhập tên đăng nhập...')}
+              value={form.username}
               onChange={handleChange}
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
@@ -286,7 +328,7 @@ export default function LoginPage() {
               htmlFor="password"
               style={error ? { color: '#dc2626', fontWeight: 600 } : {}}
             >
-              Mật khẩu
+              {t('auth.passwordLabel', 'Mật khẩu')}
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -294,7 +336,7 @@ export default function LoginPage() {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 className={`form-input ${error ? 'input-error' : ''}`}
-                placeholder="Nhập mật khẩu..."
+                placeholder={t('auth.passwordPlaceholder', 'Nhập mật khẩu...')}
                 value={form.password}
                 onChange={handleChange}
                 autoComplete="current-password"
@@ -328,18 +370,18 @@ export default function LoginPage() {
             style={{ marginTop: 4 }}
           >
             {loading ? <div className="loading-spinner" /> : <LogIn size={18} />}
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? t('auth.loggingIn', 'Đang đăng nhập...') : t('auth.loginBtn', 'Đăng nhập')}
           </button>
         </form>
 
         {/* Footer */}
         <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-          Chưa có tài khoản?{' '}
+          {t('auth.noAccountPrompt', 'Chưa có tài khoản?')}{' '}
           <Link
             to="/register"
             style={{ color: 'var(--color-brand-400)', fontWeight: 600, textDecoration: 'none' }}
           >
-            Đăng ký ngay
+            {t('auth.registerNow', 'Đăng ký ngay')}
           </Link>
         </p>
       </div>

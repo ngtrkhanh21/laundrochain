@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { authApi } from '../api/authApi';
 import {
   User,
@@ -12,17 +13,10 @@ import {
   CheckCircle2,
   Calendar,
   BadgeCheck,
+  AtSign,
 } from 'lucide-react';
 
-const ROLE_LABELS = {
-  ADMIN: 'Quản trị hệ thống',
-  PRICING_MANAGER: 'Quản lý giá',
-  SITE_MANAGER: 'Quản lý cửa hàng',
-  TECHNICIAN: 'Kỹ thuật viên',
-  MEMBER: 'Thành viên',
-};
-
-function InfoRow({ icon: Icon, label, value }) {
+function InfoRow({ icon: Icon, label, value, notUpdatedText }) {
   return (
     <div
       style={{
@@ -50,7 +44,7 @@ function InfoRow({ icon: Icon, label, value }) {
       <div>
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</p>
         <p style={{ fontSize: '0.95rem', color: 'var(--color-text-primary)', fontWeight: 500, marginTop: 1 }}>
-          {value || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Chưa cập nhật</span>}
+          {value || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>{notUpdatedText}</span>}
         </p>
       </div>
     </div>
@@ -59,11 +53,27 @@ function InfoRow({ icon: Icon, label, value }) {
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
+  const { t, language } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({ fullName: user?.fullName || '', phoneNumber: user?.phoneNumber || '' });
+  const [form, setForm] = useState({
+    fullName: user?.fullName || '',
+    phoneNumber: user?.phoneNumber || user?.phone || '',
+    email: user?.email || '',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Sync form when user changes
+  useEffect(() => {
+    if (user) {
+      setForm({
+        fullName: user.fullName || '',
+        phoneNumber: user.phoneNumber || user.phone || '',
+        email: user.email || '',
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -73,15 +83,19 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!form.fullName.trim()) {
-      setError('Họ tên không được để trống');
+      setError(t('profile.fullNameRequired', 'Họ tên không được để trống'));
       return;
     }
     if (form.fullName.trim().length < 2) {
-      setError('Họ tên phải có ít nhất 2 ký tự');
+      setError(t('profile.fullNameMin', 'Họ tên phải có ít nhất 2 ký tự'));
       return;
     }
-    if (form.phoneNumber && !/^(0|\+84)[3-9][0-9]{8}$/.test(form.phoneNumber)) {
-      setError('Số điện thoại không hợp lệ');
+    if (form.phoneNumber && !/^[0-9]{10,11}$/.test(form.phoneNumber.trim())) {
+      setError('Số điện thoại phải từ 10 đến 11 chữ số');
+      return;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError('Email không hợp lệ');
       return;
     }
 
@@ -90,10 +104,13 @@ export default function ProfilePage() {
     try {
       const result = await authApi.updateMe({
         fullName: form.fullName.trim(),
-        phoneNumber: form.phoneNumber || undefined,
+        phoneNumber: form.phoneNumber ? form.phoneNumber.trim() : undefined,
+        email: form.email ? form.email.trim() : undefined,
+        language: language === 'en' ? 'en' : 'vi',
       });
-      updateUser(result.user);
-      setSuccess('Cập nhật thông tin thành công!');
+      const updated = result?.user || result;
+      updateUser(updated);
+      setSuccess(t('profile.updateSuccess', 'Cập nhật thông tin thành công!'));
       setIsEditing(false);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -104,14 +121,18 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
-    setForm({ fullName: user?.fullName || '', phoneNumber: user?.phoneNumber || '' });
+    setForm({
+      fullName: user?.fullName || '',
+      phoneNumber: user?.phoneNumber || user?.phone || '',
+      email: user?.email || '',
+    });
     setError('');
     setIsEditing(false);
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('vi-VN', {
+    return new Date(dateStr).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -135,8 +156,8 @@ export default function ProfilePage() {
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {/* Page Header */}
       <div className="page-header">
-        <h1 className="page-title">Hồ sơ cá nhân</h1>
-        <p className="page-subtitle">Xem và cập nhật thông tin tài khoản của bạn</p>
+        <h1 className="page-title">{t('profile.title', 'Hồ sơ cá nhân')}</h1>
+        <p className="page-subtitle">{t('profile.subtitle', 'Xem và cập nhật thông tin tài khoản của bạn')}</p>
       </div>
 
       <div style={{ display: 'grid', gap: 24 }}>
@@ -158,10 +179,12 @@ export default function ProfilePage() {
               boxShadow: '0 8px 24px rgba(59,130,246,0.35)',
             }}
           >
-            {getInitials(user?.fullName)}
+            {getInitials(user?.fullName || user?.username)}
           </div>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 6 }}>{user?.fullName}</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 6 }}>
+              {user?.fullName || user?.username}
+            </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {user?.roles?.map((role) => (
                 <span key={role} className={`role-badge role-${role}`}>
@@ -178,13 +201,17 @@ export default function ProfilePage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 <Edit3 size={15} />
-                Chỉnh sửa
+                {t('profile.editProfile', 'Chỉnh sửa')}
               </button>
             ) : (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={handleCancel} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleCancel}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
                   <X size={15} />
-                  Hủy
+                  {t('profile.cancel', 'Hủy')}
                 </button>
                 <button
                   className="btn btn-primary btn-sm"
@@ -192,8 +219,12 @@ export default function ProfilePage() {
                   disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  {saving ? <div className="loading-spinner" style={{ width: 14, height: 14 }} /> : <Save size={15} />}
-                  Lưu
+                  {saving ? (
+                    <div className="loading-spinner" style={{ width: 14, height: 14 }} />
+                  ) : (
+                    <Save size={15} />
+                  )}
+                  {saving ? t('profile.saving', 'Đang lưu...') : t('profile.saveChanges', 'Lưu')}
                 </button>
               </div>
             )}
@@ -216,15 +247,21 @@ export default function ProfilePage() {
 
         {/* Info Card */}
         <div className="card">
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>Thông tin cá nhân</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>
+            {t('profile.personalInfo', 'Thông tin cá nhân')}
+          </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
-            {isEditing ? 'Chỉnh sửa thông tin bên dưới rồi nhấn Lưu' : 'Thông tin tài khoản hiện tại'}
+            {isEditing
+              ? t('profile.editInfoPrompt', 'Chỉnh sửa thông tin bên dưới rồi nhấn Lưu')
+              : t('profile.currentInfoPrompt', 'Thông tin tài khoản hiện tại')}
           </p>
 
           {isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
               <div className="form-group">
-                <label className="form-label" htmlFor="profile-fullName">Họ và tên</label>
+                <label className="form-label" htmlFor="profile-fullName">
+                  {t('profile.fullName', 'Họ và tên')} *
+                </label>
                 <input
                   id="profile-fullName"
                   name="fullName"
@@ -232,13 +269,32 @@ export default function ProfilePage() {
                   className="form-input"
                   value={form.fullName}
                   onChange={handleChange}
-                  placeholder="Nguyễn Văn A"
+                  placeholder={t('auth.fullNamePlaceholder', 'Nguyễn Văn A')}
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="profile-email">
+                  {t('profile.email', 'Email')}
+                </label>
+                <input
+                  id="profile-email"
+                  name="email"
+                  type="email"
+                  className="form-input"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="example@email.com"
+                />
+              </div>
+
               <div className="form-group">
                 <label className="form-label" htmlFor="profile-phone">
-                  Số điện thoại
-                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}> (không bắt buộc)</span>
+                  {t('profile.phone', 'Số điện thoại')}
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                    {' '}
+                    {t('auth.optional', '(không bắt buộc)')}
+                  </span>
                 </label>
                 <input
                   id="profile-phone"
@@ -247,29 +303,63 @@ export default function ProfilePage() {
                   className="form-input"
                   value={form.phoneNumber}
                   onChange={handleChange}
-                  placeholder="0901234567"
+                  placeholder={t('auth.phonePlaceholder', '0901234567')}
                 />
               </div>
             </div>
           ) : (
             <div style={{ marginTop: 8 }}>
-              <InfoRow icon={User} label="Họ và tên" value={user?.fullName} />
-              <InfoRow icon={Mail} label="Email" value={user?.email} />
-              <InfoRow icon={Phone} label="Số điện thoại" value={user?.phoneNumber} />
-              <InfoRow icon={Calendar} label="Ngày tạo tài khoản" value={formatDate(user?.createdAt)} />
-              <InfoRow icon={Calendar} label="Cập nhật lần cuối" value={formatDate(user?.updatedAt)} />
+              <InfoRow
+                icon={AtSign}
+                label={t('auth.usernameLabel', 'Tên đăng nhập')}
+                value={user?.username}
+                notUpdatedText={t('profile.notUpdated', 'Chưa cập nhật')}
+              />
+              <InfoRow
+                icon={User}
+                label={t('profile.fullName', 'Họ và tên')}
+                value={user?.fullName}
+                notUpdatedText={t('profile.notUpdated', 'Chưa cập nhật')}
+              />
+              <InfoRow
+                icon={Mail}
+                label={t('profile.email', 'Email')}
+                value={user?.email}
+                notUpdatedText={t('profile.notUpdated', 'Chưa cập nhật')}
+              />
+              <InfoRow
+                icon={Phone}
+                label={t('profile.phone', 'Số điện thoại')}
+                value={user?.phoneNumber || user?.phone}
+                notUpdatedText={t('profile.notUpdated', 'Chưa cập nhật')}
+              />
+              <InfoRow
+                icon={Calendar}
+                label={t('profile.createdAt', 'Ngày tạo tài khoản')}
+                value={formatDate(user?.createdAt)}
+                notUpdatedText={t('profile.notUpdated', 'Chưa cập nhật')}
+              />
             </div>
           )}
         </div>
 
-        {/* Roles Card */}
+        {/* Roles & Permissions Card */}
         <div className="card">
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3
+            style={{
+              fontSize: '1rem',
+              fontWeight: 700,
+              marginBottom: 4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Shield size={18} color="var(--color-brand-400)" />
-            Phân quyền & Vai trò
+            {t('profile.rolesAndPermissions', 'Phân quyền & Vai trò')}
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 16 }}>
-            Vai trò quyết định chức năng bạn được sử dụng
+            {t('profile.rolesDescription', 'Vai trò quyết định chức năng bạn được sử dụng')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {user?.roles?.map((role) => (
@@ -289,12 +379,38 @@ export default function ProfilePage() {
                 <div>
                   <span className={`role-badge role-${role}`}>{role}</span>
                   <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    {ROLE_LABELS[role] || role}
+                    {t('roles.' + role, role)}
                   </p>
                 </div>
               </div>
             ))}
           </div>
+
+          {user?.permissions && user.permissions.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                Quyền hạn (Permissions):
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {user.permissions.map((perm) => (
+                  <span
+                    key={perm}
+                    style={{
+                      fontSize: '0.72rem',
+                      fontFamily: 'monospace',
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      color: 'var(--color-brand-400)',
+                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                    }}
+                  >
+                    {perm}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
