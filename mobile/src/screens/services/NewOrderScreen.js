@@ -968,8 +968,12 @@ export default function NewOrderScreen({ navigation }) {
       {/* ========================================================================= */}
       <Modal visible={orderModalVisible} transparent animationType="slide" onRequestClose={() => setOrderModalVisible(false)}>
         <View style={styles.sheetOverlay}>
-          {/* Backdrop riêng: Chỉ bấm vào khoảng xám mờ phía trên mới đóng modal */}
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOrderModalVisible(false)} />
+          {/* Vùng mờ phía trên: Chỉ bấm vào vùng này mới hạ bảng đặt */}
+          <TouchableOpacity
+            style={styles.sheetBackdropTouchable}
+            activeOpacity={1}
+            onPress={() => setOrderModalVisible(false)}
+          />
 
           <View style={styles.sheetContent}>
             <View style={styles.sheetDragBar} />
@@ -2151,6 +2155,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
+  },
+  sheetBackdropTouchable: {
+    flex: 1,
+    width: '100%',
   },
   sheetContent: {
     backgroundColor: COLORS.white,
