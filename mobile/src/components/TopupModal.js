@@ -158,8 +158,9 @@ export default function TopupModal({ visible, onClose, onSuccess, initialAmount 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.content} onPress={(e) => e.stopPropagation()}>
+      <View style={styles.overlay}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -350,8 +351,8 @@ export default function TopupModal({ visible, onClose, onSuccess, initialAmount 
               </View>
             )}
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

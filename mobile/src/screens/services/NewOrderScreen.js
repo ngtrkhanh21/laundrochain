@@ -180,6 +180,7 @@ export default function NewOrderScreen({ navigation }) {
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [topupModalVisible, setTopupModalVisible] = useState(false);
   const [returnToOrderStep, setReturnToOrderStep] = useState(null);
+  const [walletError, setWalletError] = useState(false);
 
   // Modal VietQR Checkout PayOS
   const [payOsOrderModal, setPayOsOrderModal] = useState(null);
@@ -444,47 +445,19 @@ export default function NewOrderScreen({ navigation }) {
     setOrderModalVisible(true);
   };
 
-  // Mở nạp tiền từ trong modal đặt hàng (giữ lại trạng thái bước 4 để quay lại sau khi nạp)
+  // Mở nạp tiền trực tiếp mà KHÔNG ĐÓNG bảng đặt giặt
   const handleOpenTopupFromOrder = () => {
-    setReturnToOrderStep(4);
-    setOrderModalVisible(false);
     setTopupModalVisible(true);
   };
 
   // 1. Đặt giặt và thanh toán trực tiếp bằng SỐ DƯ VÍ THÀNH VIÊN
   const handlePayWithWallet = async () => {
     const payAmount = finalAmount;
-    const curBalance = wallet?.balance ?? user?.walletBalance ?? 0;
+    const curBalance = Number(wallet?.balance ?? user?.walletBalance ?? 0);
 
     if (curBalance < payAmount) {
-      // Giữ nguyên modal đặt hàng, không làm mất bảng đặt
-      if (Platform.OS === 'web') {
-        const confirmTopup = typeof window !== 'undefined' && window.confirm(
-          isVietnamese
-            ? `Số dư ví hiện tại (${curBalance.toLocaleString('vi-VN')} ₫) không đủ để thanh toán (${payAmount.toLocaleString('vi-VN')} ₫).\n\n• Bấm [OK] để nạp tiền vào ví ngay\n• Bấm [Cancel / Hủy] để chuyển sang thanh toán VietQR.`
-            : `Current balance (${curBalance.toLocaleString('vi-VN')} ₫) is not enough to pay (${payAmount.toLocaleString('vi-VN')} ₫).\n\n• Click [OK] to top up now\n• Click [Cancel] to pay with VietQR.`
-        );
-        if (confirmTopup) {
-          handleOpenTopupFromOrder();
-        } else {
-          setPaymentMethod('PAYOS');
-        }
-        return;
-      }
-
-      Alert.alert(
-        isVietnamese ? 'Số dư ví không đủ' : 'Insufficient Balance',
-        isVietnamese
-          ? `Số dư ví hiện tại (${curBalance.toLocaleString('vi-VN')} ₫) không đủ thanh toán (${payAmount.toLocaleString('vi-VN')} ₫). Bạn có muốn nạp thêm tiền ngay hoặc chuyển sang VietQR?`
-          : `Current balance (${curBalance.toLocaleString('vi-VN')} ₫) is not enough to pay (${payAmount.toLocaleString('vi-VN')} ₫). Top up now or switch to VietQR?`,
-        [
-          { text: isVietnamese ? 'Dùng VietQR' : 'Use VietQR', onPress: () => setPaymentMethod('PAYOS') },
-          {
-            text: isVietnamese ? 'Nạp tiền ngay' : 'Top up now',
-            onPress: () => handleOpenTopupFromOrder(),
-          },
-        ]
-      );
+      // Bật cờ cảnh báo lỗi số dư ví, tuyệt đối KHÔNG tắt bảng đặt giặt
+      setWalletError(true);
       return;
     }
 
@@ -944,8 +917,9 @@ export default function NewOrderScreen({ navigation }) {
 
       {/* MODAL 1: CHỌN CHI NHÁNH TIỆM GIẶT */}
       <Modal visible={siteModalVisible} transparent animationType="fade" onRequestClose={() => setSiteModalVisible(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setSiteModalVisible(false)}>
-          <Pressable style={styles.siteModalContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSiteModalVisible(false)} />
+          <View style={styles.siteModalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {isVietnamese ? 'Chọn chi nhánh tiệm giặt' : 'Select Branch / Site'}
@@ -985,16 +959,19 @@ export default function NewOrderScreen({ navigation }) {
                 );
               })}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* ========================================================================= */}
       {/* MODAL 2: FLOW 4 BƯỚC HOÀN TẤT ĐẶT GIẶT (BƯỚC 2 -> 3 -> 4 ĐỒNG BỘ 100% WEB) */}
       {/* ========================================================================= */}
       <Modal visible={orderModalVisible} transparent animationType="slide" onRequestClose={() => setOrderModalVisible(false)}>
-        <Pressable style={styles.sheetOverlay} onPress={() => setOrderModalVisible(false)}>
-          <Pressable style={styles.sheetContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.sheetOverlay}>
+          {/* Backdrop riêng: Chỉ bấm vào khoảng xám mờ phía trên mới đóng modal */}
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOrderModalVisible(false)} />
+
+          <View style={styles.sheetContent}>
             <View style={styles.sheetDragBar} />
 
             {/* Header Modal kèm nút đóng */}
@@ -1467,24 +1444,52 @@ export default function NewOrderScreen({ navigation }) {
                     <Text style={styles.backStepBtnText}>{isVietnamese ? 'Quay lại Bước 3' : 'Back to Step 3'}</Text>
                   </TouchableOpacity>
 
+                  {/* Cảnh báo lỗi inline khi bấm thanh toán nhưng số dư không đủ */}
+                  {walletError && currentBalance < finalAmount && paymentMethod === 'WALLET' && (
+                    <View style={styles.inlineActionAlert}>
+                      <AlertTriangle size={16} color={COLORS.dangerDark} />
+                      <Text style={styles.inlineActionAlertText}>
+                        {isVietnamese
+                          ? `Số dư ví (${currentBalance.toLocaleString('vi-VN')} ₫) không đủ thanh toán (${finalAmount.toLocaleString('vi-VN')} ₫). Vui lòng nạp thêm tiền hoặc chọn VietQR.`
+                          : `Wallet balance (${currentBalance.toLocaleString('vi-VN')} ₫) is insufficient. Please top up or switch to VietQR.`}
+                      </Text>
+                    </View>
+                  )}
+
                   {paymentMethod === 'WALLET' ? (
-                    <TouchableOpacity
-                      style={[styles.sheetSubmitBtn, submittingOrder && { opacity: 0.7 }]}
-                      onPress={handlePayWithWallet}
-                      disabled={submittingOrder}
-                      activeOpacity={0.85}
-                    >
-                      {submittingOrder ? (
-                        <ActivityIndicator size="small" color={COLORS.white} />
-                      ) : (
-                        <>
-                          <Wallet size={16} color={COLORS.white} />
-                          <Text style={styles.sheetSubmitBtnText}>
-                            {isVietnamese ? `Thanh toán ${finalAmount.toLocaleString('vi-VN')} ₫` : `Pay ${finalAmount.toLocaleString('vi-VN')} ₫`}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
+                    currentBalance < finalAmount ? (
+                      <TouchableOpacity
+                        style={[styles.sheetSubmitBtn, styles.sheetSubmitBtnWarning]}
+                        onPress={() => {
+                          setWalletError(true);
+                          setTopupModalVisible(true);
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <AlertTriangle size={16} color={COLORS.white} />
+                        <Text style={styles.sheetSubmitBtnText}>
+                          {isVietnamese ? 'Ví không đủ tiền • Bấm nạp thêm' : 'Insufficient Balance • Top Up'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.sheetSubmitBtn, submittingOrder && { opacity: 0.7 }]}
+                        onPress={handlePayWithWallet}
+                        disabled={submittingOrder}
+                        activeOpacity={0.85}
+                      >
+                        {submittingOrder ? (
+                          <ActivityIndicator size="small" color={COLORS.white} />
+                        ) : (
+                          <>
+                            <Wallet size={16} color={COLORS.white} />
+                            <Text style={styles.sheetSubmitBtnText}>
+                              {isVietnamese ? `Thanh toán ${finalAmount.toLocaleString('vi-VN')} ₫` : `Pay ${finalAmount.toLocaleString('vi-VN')} ₫`}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )
                   ) : (
                     <TouchableOpacity
                       style={[styles.sheetSubmitBtn, { backgroundColor: COLORS.accentDark }, submittingOrder && { opacity: 0.7 }]}
@@ -1507,15 +1512,16 @@ export default function NewOrderScreen({ navigation }) {
                 </View>
               )}
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* MODAL 3: VIETQR PAYOS MODAL (QUÉT MÃ & MÔ PHỎNG THÀNH CÔNG) */}
       {payOsOrderModal && (
         <Modal visible={!!payOsOrderModal} transparent animationType="fade" onRequestClose={() => setPayOsOrderModal(null)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setPayOsOrderModal(null)}>
-            <Pressable style={styles.qrModalContent} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPayOsOrderModal(null)} />
+            <View style={styles.qrModalContent}>
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <QrCode size={20} color={COLORS.primary} />
@@ -1600,8 +1606,8 @@ export default function NewOrderScreen({ navigation }) {
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
-            </Pressable>
-          </Pressable>
+            </View>
+          </View>
         </Modal>
       )}
 
@@ -1611,21 +1617,10 @@ export default function NewOrderScreen({ navigation }) {
       {/* Topup Modal */}
       <TopupModal
         visible={topupModalVisible}
-        onClose={() => {
-          setTopupModalVisible(false);
-          if (returnToOrderStep) {
-            setModalStep(returnToOrderStep);
-            setOrderModalVisible(true);
-            setReturnToOrderStep(null);
-          }
-        }}
+        onClose={() => setTopupModalVisible(false)}
         onSuccess={() => {
           loadInitialData();
-          if (returnToOrderStep) {
-            setModalStep(returnToOrderStep);
-            setOrderModalVisible(true);
-            setReturnToOrderStep(null);
-          }
+          setWalletError(false);
         }}
         initialAmount={Math.max(50000, finalAmount - currentBalance)}
       />
@@ -2735,6 +2730,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 13,
     borderRadius: 14,
+  },
+  sheetSubmitBtnWarning: {
+    backgroundColor: '#D97706',
+  },
+  inlineActionAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  inlineActionAlertText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+    lineHeight: 16,
   },
   sheetSubmitBtnText: {
     color: COLORS.white,
