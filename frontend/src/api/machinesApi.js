@@ -59,10 +59,20 @@ export const machinesApi = {
     return await apiRequest(`/api/machines/${machineId}/services`);
   },
 
-  // Lấy danh sách toàn bộ máy (hỗ trợ lọc theo siteId)
-  getMachines: async (siteId) => {
-    const query = siteId ? `?siteId=${siteId}` : '';
-    return await apiRequest(`/api/machines${query}`);
+    // Lấy danh sách toàn bộ máy trong hệ thống (hỗ trợ lọc theo siteId, kind: WASHER/DRYER, status, search)
+  getMachines: async (filter = {}) => {
+    if (typeof filter === 'string') {
+      return await apiRequest(`/api/machines?siteId=${encodeURIComponent(filter)}`);
+    }
+    const params = new URLSearchParams();
+    if (filter?.siteId) params.append('siteId', filter.siteId);
+    if (filter?.kind && filter.kind !== 'ALL') params.append('kind', filter.kind);
+    if (filter?.status && filter.status !== 'ALL') params.append('status', filter.status);
+    if (filter?.machineClassId) params.append('machineClassId', filter.machineClassId);
+    if (filter?.offeringId) params.append('offeringId', filter.offeringId);
+    if (filter?.search) params.append('search', filter.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return await apiRequest(`/api/machines${qs}`);
   },
 
   // Chi tiết máy theo ID

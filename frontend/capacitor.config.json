@@ -1,0 +1,16 @@
+{
+  "appId": "com.laundrochain.app",
+  "appName": "LaundroChain",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": [
+      "laundarychain.runasp.net",
+      "accounts.google.com",
+      "*.google.com",
+      "*.googleusercontent.com",
+      "apis.google.com"
+    ]
+  }
+}

@@ -12,72 +12,9 @@ import {
   Download,
 } from 'lucide-react';
 
-const MOCK_AUDIT_LOGS = [
-  {
-    id: 'log-101',
-    timestamp: '2026-10-15 22:45:10',
-    actor: 'admin',
-    action: 'USER_LOGIN_SUCCESS',
-    target: 'Session / Auth',
-    ip: '127.0.0.1',
-    status: 'SUCCESS',
-    detail: 'Đăng nhập thành công từ trình duyệt Chrome, hệ điều hành Windows.',
-  },
-  {
-    id: 'log-102',
-    timestamp: '2026-10-15 22:38:22',
-    actor: 'admin',
-    action: 'WORKPLACE_TRANSFER',
-    target: 'site_lead (@s1 -> @s2)',
-    ip: '127.0.0.1',
-    status: 'SUCCESS',
-    detail: 'Chuyển cơ sở công tác của nhân viên Trần Văn Cửa Hàng Trưởng sang chi nhánh Bình Thạnh.',
-  },
-  {
-    id: 'log-103',
-    timestamp: '2026-10-15 21:12:05',
-    actor: 'pricing',
-    action: 'DMN_RULE_PUBLISH',
-    target: 'Bundle v2.4 (Peak Hour Surge)',
-    ip: '192.168.1.100',
-    status: 'SUCCESS',
-    detail: 'Xuất bản bảng giá mới: Áp dụng hệ số 1.15x cho khung giờ cao điểm 18:00 - 21:00.',
-  },
-  {
-    id: 'log-104',
-    timestamp: '2026-10-15 19:30:41',
-    actor: 'system_iot',
-    action: 'MACHINE_ERROR_DETECTED',
-    target: 'WASH-Q1-03',
-    ip: '192.168.1.50',
-    status: 'WARNING',
-    detail: 'Cảnh báo lỗi E04: Rung lắc lồng giặt quá mức trong chu trình vắt 1200rpm.',
-  },
-  {
-    id: 'log-105',
-    timestamp: '2026-10-15 17:05:18',
-    actor: 'admin',
-    action: 'USER_CREATED',
-    target: 'tech_huy (TECHNICIAN)',
-    ip: '127.0.0.1',
-    status: 'SUCCESS',
-    detail: 'Tạo tài khoản kỹ thuật viên mới, cấp mật khẩu tạm thời yêu cầu đổi khi đăng nhập.',
-  },
-  {
-    id: 'log-106',
-    timestamp: '2026-10-15 14:22:00',
-    actor: 'unknown',
-    action: 'LOGIN_FAILED',
-    target: 'Username: admin_fake',
-    ip: '14.232.18.99',
-    status: 'FAILED',
-    detail: 'Sai mật khẩu quá 3 lần từ địa chỉ IP không xác định.',
-  },
-];
-
 export default function AuditLogPage() {
   const { isVietnamese } = useLanguage();
-  const [logs] = useState(MOCK_AUDIT_LOGS);
+  const [logs] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -156,7 +93,13 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {filtered.map((log) => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">
+                    {isVietnamese ? 'Chưa có nhật ký kiểm toán nào được ghi nhận' : 'No audit logs recorded'}
+                  </td>
+                </tr>
+              ) : filtered.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
                   <td className="px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {log.timestamp}

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { adminApi } from '../api/adminApi';
 import { useLanguage } from '../context/LanguageContext';
 import {
   Cpu,
@@ -15,75 +16,42 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 
-const MOCK_DEVICES = [
-  {
-    deviceId: 'dev-001',
-    deviceCode: 'KIOSK-Q1-01',
-    type: 'KIOSK_TERMINAL',
-    siteName: 'LaundroChain Quận 1 - Flagship',
-    ipAddress: '192.168.1.50',
-    status: 'ONLINE',
-    firmware: 'v2.4.1-lts',
-    signal: -52,
-    lastPing: '3 giây trước',
-    connectedMachines: 6,
-  },
-  {
-    deviceId: 'dev-002',
-    deviceCode: 'KIOSK-Q1-02',
-    type: 'KIOSK_TERMINAL',
-    siteName: 'LaundroChain Quận 1 - Flagship',
-    ipAddress: '192.168.1.51',
-    status: 'ONLINE',
-    firmware: 'v2.4.1-lts',
-    signal: -58,
-    lastPing: '5 giây trước',
-    connectedMachines: 6,
-  },
-  {
-    deviceId: 'dev-003',
-    deviceCode: 'GATEWAY-BTH-01',
-    type: 'IOT_GATEWAY',
-    siteName: 'LaundroChain Bình Thạnh - Campus',
-    ipAddress: '192.168.2.10',
-    status: 'ONLINE',
-    firmware: 'v2.3.9',
-    signal: -65,
-    lastPing: '12 giây trước',
-    connectedMachines: 8,
-  },
-  {
-    deviceId: 'dev-004',
-    deviceCode: 'KIOSK-Q7-01',
-    type: 'KIOSK_TERMINAL',
-    siteName: 'LaundroChain Quận 7 - Sunrise',
-    ipAddress: '192.168.3.15',
-    status: 'WARNING',
-    firmware: 'v2.3.0',
-    signal: -82,
-    lastPing: '2 phút trước',
-    connectedMachines: 4,
-  },
-  {
-    deviceId: 'dev-005',
-    deviceCode: 'GATEWAY-CG-01',
-    type: 'IOT_GATEWAY',
-    siteName: 'LaundroChain Cầu Giấy - Hà Nội',
-    ipAddress: '192.168.4.20',
-    status: 'OFFLINE',
-    firmware: 'v2.2.8',
-    signal: 0,
-    lastPing: '45 phút trước',
-    connectedMachines: 10,
-  },
-];
-
 export default function DevicesPage() {
   const { isVietnamese } = useLanguage();
-  const [devices, setDevices] = useState(MOCK_DEVICES);
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [rebootingId, setRebootingId] = useState(null);
+
+  useEffect(() => {
+    async function loadDevices() {
+      setLoading(true);
+      try {
+        const data = await adminApi.getDevices();
+        const list = Array.isArray(data) ? data : (data?.items || []);
+        const mapped = list.map((d) => ({
+          deviceId: d.deviceId,
+          deviceCode: d.code,
+          type: d.deviceType === 'KIOSK' ? 'KIOSK_TERMINAL' : 'IOT_GATEWAY',
+          siteName: d.siteName || 'LaundroChain Bến Thành - Quận 1',
+          ipAddress: d.ipAddress || '192.168.1.100',
+          status: d.status || 'ONLINE',
+          firmware: d.firmwareVersion || 'v1.0.0',
+          signal: -50,
+          lastPing: d.lastPingAt ? new Date(d.lastPingAt).toLocaleTimeString('vi-VN') : 'Vừa xong',
+          connectedMachines: 6,
+        }));
+        setDevices(mapped);
+      } catch (err) {
+        console.warn('Devices API load error', err);
+        setDevices([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDevices();
+  }, []);
 
   function handleReboot(id) {
     setRebootingId(id);

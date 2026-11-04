@@ -60,43 +60,6 @@ async function brandRequest(endpoint, options = {}) {
   return data;
 }
 
-// Fallback demo trong trường hợp backend offline hoặc chưa có quyền
-const MOCK_BRANDS = [
-  {
-    brandId: '01927700-0000-7000-8000-000000000010',
-    code: 'LAUNDRO_FLAGSHIP',
-    name: 'LaundroChain Flagship',
-    logoUrl: null,
-    description: 'Thương hiệu tiệm giặt thông minh tự động 24/7',
-    status: 'ACTIVE',
-    createdAt: '2026-10-13T12:20:42.815662Z',
-    totalSites: 1,
-    totalMembers: 2,
-  },
-  {
-    brandId: '01927700-0000-7000-8000-000000000020',
-    code: 'AQUAPRO_EXPRESS',
-    name: 'AquaPro Express Laundry',
-    logoUrl: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80',
-    description: 'Dịch vụ giặt sấy siêu tốc tích hợp sấy diệt khuẩn tia UV',
-    status: 'ACTIVE',
-    createdAt: '2026-10-14T08:15:20.100Z',
-    totalSites: 3,
-    totalMembers: 120,
-  },
-  {
-    brandId: '01927700-0000-7000-8000-000000000030',
-    code: 'SPEED_CLEAN_VN',
-    name: 'SpeedClean Eco Care',
-    logoUrl: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80',
-    description: 'Hệ sinh thái giặt ủi thân thiện môi trường sử dụng nước giặt hữu cơ',
-    status: 'INACTIVE',
-    createdAt: '2026-10-15T09:30:00.000Z',
-    totalSites: 0,
-    totalMembers: 0,
-  },
-];
-
 export const brandsApi = {
   /**
    * Lấy danh sách thương hiệu (Search & Filter status)
@@ -107,40 +70,14 @@ export const brandsApi = {
     if (status && status !== 'ALL') params.append('status', status);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-
-    try {
-      return await brandRequest(`/api/brands${query}`);
-    } catch (err) {
-      console.warn('Backend brands fetch fallback:', err.message);
-      // Fallback local filtering
-      let result = [...MOCK_BRANDS];
-      if (search) {
-        const q = search.toLowerCase();
-        result = result.filter(
-          (b) =>
-            b.name.toLowerCase().includes(q) ||
-            b.code.toLowerCase().includes(q) ||
-            (b.description && b.description.toLowerCase().includes(q))
-        );
-      }
-      if (status && status !== 'ALL') {
-        result = result.filter((b) => b.status === status);
-      }
-      return result;
-    }
+    return await brandRequest(`/api/brands${query}`);
   },
 
   /**
    * Lấy chi tiết thương hiệu theo ID
    */
   getBrandById: async (id) => {
-    try {
-      return await brandRequest(`/api/brands/${id}`);
-    } catch (err) {
-      const found = MOCK_BRANDS.find((b) => b.brandId === id);
-      if (found) return found;
-      throw err;
-    }
+    return await brandRequest(`/api/brands/${id}`);
   },
 
   /**

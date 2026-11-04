@@ -32,6 +32,18 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    if (
+      response.status === 403 &&
+      (data?.error === 'PASSWORD_CHANGE_REQUIRED' ||
+        data?.code === 'PASSWORD_CHANGE_REQUIRED' ||
+        data?.message?.includes('PASSWORD_CHANGE_REQUIRED') ||
+        data?.message?.includes('temporary password'))
+    ) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:password-change-required', { detail: data }));
+      }
+    }
+
     let errorMessage = `Lỗi ${response.status}`;
     if (data) {
       if (data.message) {
@@ -81,13 +93,56 @@ export const authApi = {
       body: JSON.stringify({ idToken }),
     }),
 
+  // Kiosk QR Login Endpoints
+  initQrLogin: (options = {}) =>
+    apiRequest('/api/auth/qr/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        deviceName: options.deviceName || 'Kiosk Trạm Giặt Thông Minh',
+        siteId: options.siteId || undefined,
+        siteName: options.siteName || undefined,
+        expirationSeconds: options.expirationSeconds || 180,
+      }),
+    }),
+
+  checkQrStatus: (sessionId, qrToken) =>
+    apiRequest(`/api/auth/qr/${sessionId}/status?qrToken=${encodeURIComponent(qrToken)}`),
+
+  scanQrCode: (payload, customOptions = {}) =>
+    apiRequest('/api/auth/qr/scan', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      ...customOptions,
+    }),
+
+  confirmQrLogin: (payload, customOptions = {}) =>
+    apiRequest('/api/auth/qr/confirm', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      ...customOptions,
+    }),
+
+  rejectQrLogin: (payload, customOptions = {}) =>
+    apiRequest('/api/auth/qr/reject', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      ...customOptions,
+    }),
+
   getMe: async () => {
     const token = localStorage.getItem('laundrochain_token');
     if (token && (token.startsWith('mock-') || token.startsWith('demo-'))) {
       const saved = localStorage.getItem('laundrochain_user');
-      return saved ? JSON.parse(saved) : null;
+      try {
+        const parsed = saved ? JSON.parse(saved) : null;
+        return parsed ? { user: parsed, ...parsed } : null;
+      } catch {
+        return null;
+      }
     }
-    return apiRequest('/api/users/me');
+    const data = await apiRequest('/api/users/me');
+    const rawUser = data?.user || data;
+    return rawUser ? { user: rawUser, ...rawUser } : null;
   },
 
   updateMe: async (payload) => {

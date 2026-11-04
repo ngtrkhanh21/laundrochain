@@ -37,9 +37,31 @@ export function ProtectedRoute() {
  * Nếu đã đăng nhập → chuyển về dashboard.
  */
 export function PublicRoute() {
-  const { isAuthenticated, initializing } = useAuth();
+  const { isAuthenticated, initializing, user } = useAuth();
 
   if (initializing) return null;
 
-  return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  const targetPath = '/dashboard';
+  return !isAuthenticated ? <Outlet /> : <Navigate to={targetPath} replace />;
 }
+
+/**
+ * RoleRoute: Kiểm tra vai trò của user.
+ * Nếu user không thuộc allowedRoles → chuyển về fallbackPath.
+ */
+export function RoleRoute({ allowedRoles = [], fallbackPath = '/dashboard' }) {
+  const { user, isAuthenticated, initializing } = useAuth();
+
+  if (initializing) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  const userRoles = [
+    (user?.activeRole || '').toUpperCase(),
+    ...(Array.isArray(user?.roles) ? user.roles.map((r) => String(r).toUpperCase()) : []),
+  ];
+
+  const hasAccess = allowedRoles.some((role) => userRoles.includes(role.toUpperCase()));
+
+  return hasAccess ? <Outlet /> : <Navigate to={fallbackPath} replace />;
+}
+

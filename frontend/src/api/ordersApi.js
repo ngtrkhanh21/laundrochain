@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5119';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5119';
 
 async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('laundrochain_token');
@@ -28,6 +28,18 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    if (
+      response.status === 403 &&
+      (data?.error === 'PASSWORD_CHANGE_REQUIRED' ||
+        data?.code === 'PASSWORD_CHANGE_REQUIRED' ||
+        data?.message?.includes('PASSWORD_CHANGE_REQUIRED') ||
+        data?.message?.includes('temporary password'))
+    ) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:password-change-required', { detail: data }));
+      }
+    }
+
     let errorMessage = `Lỗi ${response.status}`;
     if (data) {
       if (data.message) errorMessage = data.message;
@@ -43,10 +55,10 @@ async function apiRequest(endpoint, options = {}) {
 
 export const ordersApi = {
   // 1. Tính báo giá dự kiến & áp voucher chiết khấu
-  calculateQuote: async ({ siteId, items, voucherCode = null, customerType = 'MEMBER' }) => {
+  calculateQuote: async ({ siteId, items, voucherCode = null, customerType = 'MEMBER', memberId = null }) => {
     return await apiRequest('/api/pricing/quote', {
       method: 'POST',
-      body: JSON.stringify({ siteId, items, voucherCode, customerType }),
+      body: JSON.stringify({ siteId, items, voucherCode, customerType, memberId }),
     });
   },
 
@@ -56,16 +68,24 @@ export const ordersApi = {
   },
 
   // 3. Kiểm tra tính hợp lệ của Voucher
-  validateVoucher: async (code, subtotal = 0) => {
+  validateVoucher: async (code, subtotal = 0, memberId = null) => {
     return await apiRequest('/api/vouchers/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, subtotal }),
+      body: JSON.stringify({ code, subtotal, memberId }),
     });
   },
 
-    // 3.1. Lấy danh sách Voucher khả dụng theo giá trị đơn hàng (API mới)
-  getAvailableVouchers: async (subtotal = 0) => {
-    return await apiRequest(`/api/vouchers/available?subtotal=${subtotal}`);
+  // 3.1. Lấy danh sách Voucher khả dụng (/api/vouchers/available)
+  getAvailableVouchers: async (subtotal = null, memberId = null) => {
+    const params = new URLSearchParams();
+    if (subtotal !== null && subtotal !== undefined && Number(subtotal) > 0) {
+      params.append('subtotal', subtotal);
+    }
+    if (memberId) {
+      params.append('memberId', memberId);
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return await apiRequest(`/api/vouchers/available${query}`);
   },
 
   // 4. Lấy danh sách chiến dịch khuyến mãi đang hoạt động
@@ -128,9 +148,9 @@ export const ordersApi = {
     return await apiRequest(`/api/orders/${orderId}/payment-status`);
   },
 
-  // 8.5. [1 Bước] Checkout trực tiếp với PayOS (Tạo đơn + sinh VietQR tức thì)
+  // 8.5. [1 Bước] Checkout trực tiếp với PayOS (Tạo đơn + sinh VietQR tức thì qua /api/orders/checkout-payos)
   checkoutWithPayOs: async (request) => {
-    return await apiRequest('/api/payments/payos/checkout', {
+    return await apiRequest('/api/orders/checkout-payos', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -201,5 +221,47 @@ export const ordersApi = {
     if (filter.page) query.append('page', filter.page);
     if (filter.pageSize) query.append('pageSize', filter.pageSize);
     return await apiRequest(`/api/orders?${query.toString()}`);
+  },
+
+  // 14.1 Lấy toàn bộ đơn hàng không giới hạn trang cho trạm
+  getAllOrders: async (filter = {}) => {
+    return await ordersApi.getOrders({ pageSize: 100, ...filter });
+  },
+
+  // 15. Báo sự cố & Đổi máy tương đồng (Gọi 1 API DUY NHẤT: POST /api/orders/{orderId}/report-issue)
+  reportIssue: async (orderId, options = {}) => {
+    const {
+      issueType = 'MACHINE_STOPPED',
+      description = '',
+      resolutionNote = '',
+      resolutionAction = 'TRANSFER_MACHINE',
+      contactPhone = null,
+    } = options;
+
+    const chosenIssueType = issueType || 'MACHINE_STOPPED';
+    let finalDesc = (description || resolutionNote || 'Máy gặp sự cố tại trạm, chuyển máy tương đồng.').trim();
+    if (!finalDesc.includes('Loại lỗi:') && !finalDesc.includes('Loại sự cố:')) {
+      finalDesc = `[Loại lỗi: ${chosenIssueType}] ${finalDesc}`;
+    }
+
+    return await apiRequest(`/api/orders/${orderId}/report-issue`, {
+      method: 'POST',
+      body: JSON.stringify({
+        issueType: chosenIssueType,
+        description: finalDesc,
+        contactPhone: contactPhone ? String(contactPhone).trim() : undefined,
+        resolutionAction: resolutionAction || 'TRANSFER_MACHINE',
+      }),
+    });
+  },
+
+  // 16. Xử lý sự cố & Đổi máy (Gọi chung 1 API duy nhất POST /api/orders/{orderId}/report-issue)
+  resolveIssue: async (orderId, options = {}) => {
+    return await ordersApi.reportIssue(orderId, options);
+  },
+
+  // 17. Tra cứu danh sách lịch sử báo cáo sự cố của đơn hàng
+  getOrderIssues: async (orderId) => {
+    return await apiRequest(`/api/orders/${orderId}/issues`);
   },
 };

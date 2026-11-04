@@ -7,10 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "vite build && cap sync",
+    "cap:open": "set CAPACITOR_ANDROID_STUDIO_PATH=D:\\Android\\bin\\studio64.exe&& cap open android",
+    "build:apk": "vite build && cap sync && cd android && gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@react-oauth/google": "^0.13.5",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.47.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
@@ -24,6 +31,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.6.1",
     "oxlint": "^1.81.0",
+    "pg": "^8.23.1",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0"

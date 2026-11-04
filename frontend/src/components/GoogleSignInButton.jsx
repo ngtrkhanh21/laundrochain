@@ -1,18 +1,59 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function GoogleSignInButton({ mode = 'login' }) {
-  const { loginWithGoogle, loading } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const { isVietnamese } = useLanguage();
   const navigate = useNavigate();
+
+  const containerRef = useRef(null);
+  const [btnWidth, setBtnWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const w = window.innerWidth;
+      return Math.min(Math.max(w - 72, 200), 320);
+    }
+    return 280;
+  });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Tự động tính toán kích thước nút Google theo đúng chiều rộng màn hình thiết bị (chống tràn 100%)
+  useEffect(() => {
+    const calcWidth = () => {
+      if (containerRef.current) {
+        const clientW = containerRef.current.clientWidth;
+        if (clientW > 0) {
+          // Google Identity Services giới hạn width trong khoảng [200, 400]
+          // Trừ bớt 8px padding để nút không bao giờ chạm viền khung
+          const target = Math.min(Math.max(Math.floor(clientW - 8), 200), 340);
+          setBtnWidth(target);
+          return;
+        }
+      }
+      const target = Math.min(Math.max(window.innerWidth - 72, 200), 320);
+      setBtnWidth(target);
+    };
+
+    calcWidth();
+
+    let observer;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      observer = new ResizeObserver(() => calcWidth());
+      observer.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', calcWidth);
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener('resize', calcWidth);
+    };
+  }, []);
 
   // Xử lý khi đăng nhập Google thật thành công (nhận credential là Google ID Token JWT thật)
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -45,38 +86,19 @@ export default function GoogleSignInButton({ mode = 'login' }) {
   const handleGoogleError = () => {
     setError(
       isVietnamese
-        ? 'Đăng nhập Google thất bại hoặc bạn đã đóng cửa sổ chọn tài khoản.'
+        ? 'Đăng nhập Google thất bại hoặc bạn đã đóng cửa sổ đăng nhập.'
         : 'Google sign-in failed or window closed.'
     );
   };
 
-  // Nút phụ Google Demo 1-Click dự phòng
-  const handleDemoClick = async () => {
-    setSubmitting(true);
-    setError('');
-    const demoToken = 'mock-google-id-token-' + Date.now();
-    try {
-      const res = await loginWithGoogle(demoToken);
-      if (res.success) {
-        setSuccess(isVietnamese ? 'Đăng nhập Google Demo thành công!' : 'Demo sign-in successful!');
-        setTimeout(() => navigate('/dashboard'), 600);
-      } else {
-        setError(res.error || 'Đăng nhập thất bại.');
-      }
-    } catch (err) {
-      setError(err.message || 'Lỗi kết nối.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+    <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
       {/* Thông báo lỗi / thành công */}
       {error && (
         <div
           style={{
             width: '100%',
+            maxWidth: '100%',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -87,16 +109,18 @@ export default function GoogleSignInButton({ mode = 'login' }) {
             color: '#b91c1c',
             fontSize: '0.8rem',
             fontWeight: 500,
+            boxSizing: 'border-box',
           }}
         >
           <AlertCircle size={15} style={{ flexShrink: 0 }} />
-          <span>{error}</span>
+          <span style={{ wordBreak: 'break-word' }}>{error}</span>
         </div>
       )}
       {success && (
         <div
           style={{
             width: '100%',
+            maxWidth: '100%',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -107,6 +131,7 @@ export default function GoogleSignInButton({ mode = 'login' }) {
             color: '#15803d',
             fontSize: '0.8rem',
             fontWeight: 500,
+            boxSizing: 'border-box',
           }}
         >
           <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
@@ -114,61 +139,32 @@ export default function GoogleSignInButton({ mode = 'login' }) {
         </div>
       )}
 
-      {/* Nút Google thật từ @react-oauth/google - Mở trực tiếp Popup chọn Gmail */}
+      {/* Nút Google thật từ @react-oauth/google - Tự động co giãn theo width màn hình */}
       <div
+        ref={containerRef}
         style={{
           width: '100%',
+          maxWidth: '100%',
           display: 'flex',
           justifyContent: 'center',
+          alignItems: 'center',
           opacity: submitting ? 0.6 : 1,
           pointerEvents: submitting ? 'none' : 'auto',
+          overflow: 'hidden',
+          minHeight: 46,
         }}
       >
         <GoogleLogin
+          key={`gis-btn-${btnWidth}`}
           onSuccess={handleGoogleSuccess}
           onError={handleGoogleError}
           theme="outline"
           size="large"
           text={mode === 'register' ? 'signup_with' : 'signin_with'}
-          shape="rectangular"
-          width="400"
+          shape="pill"
+          width={String(btnWidth)}
           locale={isVietnamese ? 'vi' : 'en'}
         />
-      </div>
-
-      {/* Nút phụ nhỏ Google Demo 1-Click ở góc dưới dự phòng */}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-        <button
-          type="button"
-          onClick={handleDemoClick}
-          disabled={submitting || loading}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-text-muted, #64748b)',
-            fontSize: '0.74rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
-            borderRadius: 6,
-            transition: 'all 0.15s ease',
-            textDecoration: 'underline',
-            textUnderlineOffset: '3px',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#3b82f6';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--color-text-muted, #64748b)';
-          }}
-          title={isVietnamese ? 'Dự phòng test khi không có mạng hoặc chưa cấu hình OAuth' : 'Fast test without network'}
-        >
-          <Zap size={11} color="#f59e0b" />
-          <span>{isVietnamese ? 'Google Demo 1-Click (Dự phòng test)' : 'Google Demo 1-Click (Fallback)'}</span>
-        </button>
       </div>
     </div>
   );

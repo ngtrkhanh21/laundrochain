@@ -18,7 +18,9 @@ import {
   FileText,
   SlidersHorizontal,
   ShieldCheck,
+  Ticket,
   Tag,
+  Sparkles,
   WashingMachine,
   AlertTriangle,
   History,
@@ -29,6 +31,7 @@ import {
   Search,
   Check,
   QrCode,
+  LayoutDashboard,
 } from 'lucide-react';
 
 export const WORKSPACES = [
@@ -107,10 +110,11 @@ function getRoleConfig(user, t, isVietnamese = true) {
       workspaceBadge: 'PR',
       badgeColor: 'bg-amber-100 text-amber-700',
       navItems: [
-        { label: t('sidebar.pricingRules', 'Cấu hình giá (DMN)'), icon: SlidersHorizontal, path: '/dashboard/pricing-rules' },
-        { label: t('sidebar.priceBundles', 'Price Bundles'), icon: PackageCheck, path: '/dashboard/price-bundles', badge: 'v2.4' },
-        { label: t('sidebar.staticAnalysis', 'Phân tích tĩnh (WP3)'), icon: ShieldCheck, path: '/dashboard/static-analysis' },
-        { label: t('sidebar.promotions', 'Voucher & Promotion'), icon: Tag, path: '/dashboard/promotions' },
+        { label: t('sidebar.pricingRules', 'Quy tắc định giá'), icon: SlidersHorizontal, path: '/dashboard/pricing-rules' },
+        // { label: t('sidebar.vouchers', 'Mã Voucher'), icon: Ticket, path: '/dashboard/vouchers' },
+        // { label: t('sidebar.priceFloor', 'Cấu hình Giá Sàn'), icon: ShieldCheck, path: '/dashboard/price-floor' },
+        { label: t('sidebar.basePrices', 'Bảng giá cơ sở'), icon: Tag, path: '/dashboard/base-prices' },
+        { label: t('sidebar.promotions', 'Chiến dịch khuyến mãi'), icon: Sparkles, path: '/dashboard/promotions' },
         { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
       ],
     },
@@ -120,12 +124,9 @@ function getRoleConfig(user, t, isVietnamese = true) {
       workspaceBadge: 'SM',
       badgeColor: 'bg-emerald-100 text-emerald-700',
       navItems: [
-        { label: isVietnamese ? 'Dịch vụ giặt (Kiosk / Quầy)' : 'New Laundry Order', icon: WashingMachine, path: '/dashboard/new-order' },
-        { label: isVietnamese ? 'Quản lý đơn hàng trạm' : 'Store Orders', icon: History, path: '/dashboard/orders' },
-        { label: t('sidebar.machines', 'Giám sát máy móc'), icon: WashingMachine, path: '/dashboard/machines', badge: '42/45' },
-        { label: t('sidebar.alerts', 'Cảnh báo & Sự cố'), icon: AlertTriangle, path: '/dashboard/alerts', badge: '2' },
-        { label: t('sidebar.brands', 'Thương hiệu'), icon: Store, path: '/dashboard/brands' },
-        { label: t('sidebar.ruleTrace', 'Tra cứu Rule Trace'), icon: Search, path: '/dashboard/rule-trace' },
+        { label: isVietnamese ? 'Tổng quan trạm' : 'Site Overview', icon: LayoutDashboard, path: '/dashboard/site-overview' },
+        { label: isVietnamese ? 'Quản lý đơn hàng' : 'Store Orders', icon: History, path: '/dashboard/orders' },
+        { label: t('sidebar.machines', 'Giám sát máy móc'), icon: WashingMachine, path: '/dashboard/machines' },
         { label: t('sidebar.settings', 'Hồ sơ cá nhân'), icon: User, path: '/dashboard/settings' },
       ],
     },
@@ -147,7 +148,8 @@ function getRoleConfig(user, t, isVietnamese = true) {
       workspaceBadge: 'MB',
       badgeColor: 'bg-indigo-100 text-indigo-700',
       navItems: [
-        { label: t('sidebar.newOrder', 'Dịch vụ'), icon: WashingMachine, path: '/dashboard/new-order' },
+        { label: isVietnamese ? 'Tổng quan' : 'Overview', icon: LayoutDashboard, path: '/dashboard' },
+        { label: t('sidebar.newOrder', 'Dịch vụ giặt'), icon: WashingMachine, path: '/dashboard/new-order' },
         {
           label: user?.isGuest
             ? (isVietnamese ? 'Tra cứu đơn hàng' : 'Track Orders')

@@ -17,6 +17,8 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardHome from './pages/DashboardHome';
 import PricingSimulatorPage from './pages/PricingSimulatorPage';
+import BasePricesPage from './pages/BasePricesPage';
+import PromotionsPage from './pages/PromotionsPage';
 
 // Component tự động chọn giao diện: Trên Native Mobile App (Capacitor) dùng MobileLoginPage, trên Kiosk/Web desktop dùng LoginPage
 function AdaptiveLoginPage() {
@@ -68,7 +70,11 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route
                   path="/dashboard"
-                  element={<DashboardHome />}
+                  element={
+                    <DashboardLayout>
+                      <DashboardHome />
+                    </DashboardLayout>
+                  }
                 />
                 <Route
                   path="/dashboard/profile"
@@ -131,7 +137,23 @@ export default function App() {
 
                 {/* Pricing Manager routes */}
                 <Route
-                  path="/dashboard/pricing-simulator"
+                  path="/dashboard/base-prices"
+                  element={
+                    <DashboardLayout>
+                      <BasePricesPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/dashboard/price-floor"
+                  element={
+                    <DashboardLayout>
+                      <PricingSimulatorPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/dashboard/pricing-config"
                   element={
                     <DashboardLayout>
                       <PricingSimulatorPage />
@@ -147,7 +169,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/dashboard/price-bundles"
+                  path="/dashboard/vouchers"
                   element={
                     <DashboardLayout>
                       <PricingSimulatorPage />
@@ -155,18 +177,22 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/dashboard/pricing-simulator"
+                  element={<Navigate to="/dashboard/pricing-rules" replace />}
+                />
+                <Route
+                  path="/dashboard/price-bundles"
+                  element={<Navigate to="/dashboard/pricing-rules" replace />}
+                />
+                <Route
                   path="/dashboard/static-analysis"
-                  element={
-                    <DashboardLayout>
-                      <PricingSimulatorPage />
-                    </DashboardLayout>
-                  }
+                  element={<Navigate to="/dashboard/pricing-rules" replace />}
                 />
                 <Route
                   path="/dashboard/promotions"
                   element={
                     <DashboardLayout>
-                      <PricingSimulatorPage />
+                      <PromotionsPage />
                     </DashboardLayout>
                   }
                 />
