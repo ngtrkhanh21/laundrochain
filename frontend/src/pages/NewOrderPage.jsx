@@ -1089,6 +1089,33 @@ export default function NewOrderPage() {
     setErrorMsg('');
 
     try {
+      if (kioskOrder?.orderId) {
+        try {
+          const statusRes = await ordersApi.getOrderPaymentStatus(kioskOrder.orderId);
+          if (statusRes?.qrCode || statusRes?.qrImageUrl) {
+            let qrUrl = '';
+            if (statusRes.qrCode) {
+              try {
+                qrUrl = await QRCode.toDataURL(statusRes.qrCode, {
+                  width: 360,
+                  margin: 1,
+                  color: { dark: '#0f172a', light: '#ffffff' },
+                  errorCorrectionLevel: 'M',
+                });
+              } catch {
+                qrUrl = statusRes.qrImageUrl || '';
+              }
+            } else {
+              qrUrl = statusRes.qrImageUrl || '';
+            }
+            setKioskQrUrl(qrUrl);
+            return;
+          }
+        } catch (reuseErr) {
+          console.warn('Could not refresh existing order payment, continuing to new quote', reuseErr);
+        }
+      }
+
       let quoteId = isQuoteInSync ? liveQuote?.quoteId : null;
       if (!quoteId) {
         const offeringId =
