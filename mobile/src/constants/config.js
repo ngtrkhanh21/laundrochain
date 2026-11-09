@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
 
 // Địa chỉ IP của máy chủ Backend .NET 8 (chạy trên cổng 5119)
-// Trên thiết bị thật cùng mạng Wi-Fi: Dùng IP máy tính (192.168.1.202)
-// Trên Android Emulator: Dùng 10.0.2.2 hoặc 192.168.1.202
-// Trên iOS Simulator / Web: Dùng hostname trình duyệt hoặc 192.168.1.202
-const LOCAL_PC_IP = '192.168.1.202';
+// Trên thiết bị thật cùng mạng Wi-Fi: Dùng IP máy tính (192.168.1.200)
+// Trên Android Emulator: Dùng 10.0.2.2 hoặc 192.168.1.200
+// Trên iOS Simulator / Web: Dùng hostname trình duyệt hoặc 192.168.1.200
+const LOCAL_PC_IP = '192.168.1.200';
 const BACKEND_PORT = '5119';
 
 const getDefaultApiUrl = () => {
