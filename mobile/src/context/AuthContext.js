@@ -75,7 +75,14 @@ export function AuthProvider({ children }) {
         } catch (err) {
           console.warn('Lỗi xác thực phiên trên Mobile:', err?.message);
           // Nếu token hết hạn (401), buộc đăng xuất
-          if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+          if (
+            err?.status === 401 ||
+            err?.message?.includes('401') ||
+            err?.message?.includes('Unauthorized') ||
+            err?.message?.includes('Authentication required') ||
+            err?.message?.includes('token is invalid') ||
+            err?.message?.includes('expired')
+          ) {
             await AsyncStorage.multiRemove([STORAGE_KEYS.TOKEN, STORAGE_KEYS.USER]);
             setUser(null);
             setToken(null);

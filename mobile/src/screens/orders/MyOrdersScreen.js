@@ -39,6 +39,7 @@ import {
 } from 'lucide-react-native';
 import { COLORS } from '../../constants/config';
 import { ordersApi } from '../../api/ordersApi';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import Header from '../../components/Header';
 import LanguageModal from '../../components/LanguageModal';
@@ -53,6 +54,7 @@ const STATUS_FILTERS = [
 
 export default function MyOrdersScreen({ navigation }) {
   const { isVietnamese } = useLanguage();
+  const { logout } = useAuth();
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,14 @@ export default function MyOrdersScreen({ navigation }) {
     } catch (err) {
       console.warn('Lỗi lấy danh sách đơn hàng', err);
       setOrders([]);
+      if (
+        err?.status === 401 ||
+        err?.message?.includes('Authentication required') ||
+        err?.message?.includes('token is invalid') ||
+        err?.message?.includes('expired')
+      ) {
+        logout();
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
