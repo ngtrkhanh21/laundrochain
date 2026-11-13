@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,7 @@ import {
   HelpCircle,
   ShieldCheck,
   Check,
+  Zap,
 } from 'lucide-react-native';
 import { COLORS } from '../../constants/config';
 import { ordersApi } from '../../api/ordersApi';
@@ -62,13 +63,36 @@ export default function MyOrdersScreen({ navigation }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
+  const [iotDevices, setIotDevices] = useState({});
+  const [nowTick, setNowTick] = useState(Date.now());
+  const previousOrdersRef = useRef([]);
 
+  // 1. Đồng hồ đếm lùi thời gian thực từng giây (1000ms)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 2. Tải danh sách đơn hàng & trạng thái IoT chính
   const fetchOrders = useCallback(async () => {
     try {
       const statusParam = activeFilter === 'ALL' ? null : activeFilter;
-      const res = await ordersApi.getMyOrders(statusParam);
-      const list = res?.items || (Array.isArray(res) ? res : []);
-      setOrders(list);
+      const [ordersRes, iotRes] = await Promise.allSettled([
+        ordersApi.getMyOrders(statusParam),
+        ordersApi.getIoTStatus(),
+      ]);
+
+      if (ordersRes.status === 'fulfilled' && ordersRes.value) {
+        const list = ordersRes.value?.items || (Array.isArray(ordersRes.value) ? ordersRes.value : []);
+        setOrders(list);
+        previousOrdersRef.current = list;
+      }
+
+      if (iotRes.status === 'fulfilled' && iotRes.value?.devices) {
+        setIotDevices(iotRes.value.devices);
+      }
     } catch (err) {
       console.warn('Lỗi lấy danh sách đơn hàng', err);
       setOrders([]);
@@ -84,11 +108,121 @@ export default function MyOrdersScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeFilter]);
+  }, [activeFilter, logout]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  // 3. Tự động kiểm tra (POLLING) thời gian thực mà KHÔNG CẦN F5
+  const hasActiveOrders = useMemo(() => {
+    return orders.some((o) => o.status === 'IN_PROGRESS' || o.status === 'CONFIRMED');
+  }, [orders]);
+
+  useEffect(() => {
+    // Nếu có đơn đang giặt -> poll mỗi 1.8 giây; Nếu không -> poll mỗi 5 giây
+    const intervalMs = hasActiveOrders ? 1800 : 5000;
+    const pollTimer = setInterval(async () => {
+      try {
+        const statusParam = activeFilter === 'ALL' ? null : activeFilter;
+        const [ordersRes, iotRes] = await Promise.allSettled([
+          ordersApi.getMyOrders(statusParam),
+          ordersApi.getIoTStatus(),
+        ]);
+
+        if (ordersRes.status === 'fulfilled' && ordersRes.value) {
+          const list = ordersRes.value?.items || (Array.isArray(ordersRes.value) ? ordersRes.value : []);
+
+          // Phát hiện đơn hàng vừa hoàn tất (từ IN_PROGRESS -> COMPLETED)
+          if (previousOrdersRef.current && previousOrdersRef.current.length > 0) {
+            const justCompleted = list.find((newOrder) => {
+              const oldOrder = previousOrdersRef.current.find((o) => o.orderId === newOrder.orderId);
+              return oldOrder && oldOrder.status === 'IN_PROGRESS' && newOrder.status === 'COMPLETED';
+            });
+
+            if (justCompleted) {
+              Alert.alert(
+                '🎉 ' + (isVietnamese ? 'Chu trình giặt hoàn tất!' : 'Wash Cycle Completed!'),
+                isVietnamese
+                  ? `Máy giặt ${justCompleted.assignedMachines || 'W01'} đã hoàn thành chu trình giặt! Cửa máy đã mở, quý khách vui lòng lấy đồ.`
+                  : `Machine ${justCompleted.assignedMachines || 'W01'} has finished. Door is unlocked!`
+              );
+            }
+          }
+
+          previousOrdersRef.current = list;
+          setOrders(list);
+
+          // Tự động cập nhật modal nếu người dùng đang mở xem chi tiết
+          if (selectedOrder) {
+            const updated = list.find((o) => o.orderId === selectedOrder.orderId);
+            if (updated) {
+              setSelectedOrder((prev) => ({ ...prev, ...updated }));
+            }
+          }
+        }
+
+        if (iotRes.status === 'fulfilled' && iotRes.value?.devices) {
+          setIotDevices(iotRes.value.devices);
+        }
+      } catch (err) {
+        if (
+          err?.status === 401 ||
+          err?.message?.includes('Authentication required') ||
+          err?.message?.includes('token is invalid') ||
+          err?.message?.includes('expired')
+        ) {
+          logout();
+        }
+      }
+    }, intervalMs);
+
+    return () => clearInterval(pollTimer);
+  }, [activeFilter, hasActiveOrders, isVietnamese, logout, selectedOrder]);
+
+  // 4. Tính toán tiến độ & đếm lùi thời gian thực của máy giặt đang chạy
+  const getRunningProgressInfo = (order) => {
+    const cycleDurationSec = 30; // 30s chu trình giả lập
+    const machineCode = order.assignedMachines || 'W01';
+    const iot = iotDevices[machineCode] || iotDevices['W01'];
+
+    let startMs = order.updatedAt ? new Date(order.updatedAt).getTime() : new Date(order.createdAt).getTime();
+    if (order.startedAt) {
+      startMs = new Date(order.startedAt).getTime();
+    }
+
+    const elapsedSec = Math.max(0, Math.floor((nowTick - startMs) / 1000));
+    const remainSec = Math.max(0, cycleDurationSec - (elapsedSec % (cycleDurationSec + 8)));
+
+    let progress = Math.min(100, Math.max(8, Math.floor(((cycleDurationSec - remainSec) / cycleDurationSec) * 100)));
+    if (iot?.progressPercent > 0) {
+      progress = Math.max(progress, iot.progressPercent);
+    }
+
+    let phaseName = isVietnamese ? 'Đang giặt nước nóng' : 'Washing';
+    let watts = 420;
+    if (progress >= 85) {
+      phaseName = isVietnamese ? 'Đang vắt ráo siêu tốc' : 'Spinning';
+      watts = 780;
+    } else if (progress >= 60) {
+      phaseName = isVietnamese ? 'Đang xả thơm sợi vải' : 'Rinsing';
+      watts = 310;
+    }
+
+    if (iot?.powerWatts > 0) {
+      watts = iot.powerWatts;
+    }
+
+    return {
+      machineCode,
+      remainSec,
+      progress,
+      phaseName,
+      watts,
+      isDoorLocked: remainSec > 0,
+      iotConnected: !!iot,
+    };
+  };
 
   // Bắt đầu chu trình giặt cho đơn đã CONFIRMED
   const handleStartOrder = async (order) => {
@@ -229,16 +363,49 @@ export default function MyOrdersScreen({ navigation }) {
             </Text>
           </View>
 
-          {isRunning && (
-            <View style={styles.countdownBanner}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.countdownText}>
-                {isVietnamese
-                  ? 'Máy đang hoạt động chu trình • Vui lòng chờ máy hoàn tất'
-                  : 'Cycle in progress • Machine running'}
-              </Text>
-            </View>
-          )}
+          {isRunning && (() => {
+            const info = getRunningProgressInfo(item);
+            return (
+              <View style={styles.runningLiveBox}>
+                <View style={styles.runningLiveHeader}>
+                  <View style={styles.runningDotRow}>
+                    <View style={styles.pulseDot} />
+                    <Text style={styles.runningPhaseTitle} numberOfLines={1}>
+                      {info.phaseName} ({info.machineCode})
+                    </Text>
+                  </View>
+                  <View style={styles.countdownPill}>
+                    <Clock size={11} color={COLORS.primaryDark} />
+                    <Text style={styles.countdownPillText}>
+                      {info.remainSec > 0 ? `Còn ${info.remainSec}s` : (isVietnamese ? 'Đang hoàn tất...' : 'Finishing...')}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Thanh tiến độ */}
+                <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarThumb, { width: `${info.progress}%` }]} />
+                </View>
+
+                {/* Thông số IoT trực tiếp */}
+                <View style={styles.runningTelemetryRow}>
+                  <View style={styles.telemetryTagItem}>
+                    <Zap size={11} color={COLORS.primaryDark} />
+                    <Text style={styles.telemetryTagText}>{info.watts}W</Text>
+                  </View>
+                  <View style={styles.telemetryTagItem}>
+                    <ShieldCheck size={11} color={COLORS.primaryDark} />
+                    <Text style={styles.telemetryTagText}>
+                      {info.isDoorLocked
+                        ? (isVietnamese ? 'Cửa: KHÓA' : 'LOCKED')
+                        : (isVietnamese ? 'Cửa: MỞ' : 'OPEN')}
+                    </Text>
+                  </View>
+                  <Text style={styles.progressPercentText}>{info.progress}%</Text>
+                </View>
+              </View>
+            );
+          })()}
         </View>
 
         <View style={styles.cardFooter}>
@@ -398,6 +565,66 @@ export default function MyOrdersScreen({ navigation }) {
                       : 'We will notify you once the machine completes the cycle.'}
                   </Text>
                 </View>
+
+                {/* Real-time Washing Progress Card in Modal */}
+                {selectedOrder.status === 'IN_PROGRESS' && (() => {
+                  const info = getRunningProgressInfo(selectedOrder);
+                  return (
+                    <View style={styles.modalRunningCard}>
+                      <View style={styles.modalRunningHeader}>
+                        <View style={styles.runningDotRow}>
+                          <View style={styles.pulseDot} />
+                          <Text style={styles.modalRunningTitle}>
+                            {info.phaseName}
+                          </Text>
+                        </View>
+                        <View style={styles.modalCountdownBadge}>
+                          <Clock size={12} color={COLORS.primaryDark} />
+                          <Text style={styles.modalCountdownText}>
+                            {info.remainSec > 0 ? `Còn ${info.remainSec}s` : (isVietnamese ? 'Đang hoàn tất...' : 'Finishing...')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.modalProgressTrack}>
+                        <View style={[styles.modalProgressFill, { width: `${info.progress}%` }]} />
+                      </View>
+
+                      <View style={styles.modalMetaRow}>
+                        <View style={styles.modalMetaCol}>
+                          <Text style={styles.modalMetaLabel}>{isVietnamese ? 'MÁY GIẶT' : 'MACHINE'}</Text>
+                          <Text style={styles.modalMetaValue}>{info.machineCode}</Text>
+                        </View>
+                        <View style={styles.modalMetaCol}>
+                          <Text style={styles.modalMetaLabel}>{isVietnamese ? 'CÔNG SUẤT' : 'POWER'}</Text>
+                          <Text style={styles.modalMetaValue}>{info.watts}W</Text>
+                        </View>
+                        <View style={styles.modalMetaCol}>
+                          <Text style={styles.modalMetaLabel}>{isVietnamese ? 'KHÓA CỬA' : 'DOOR'}</Text>
+                          <Text style={styles.modalMetaValue}>{info.isDoorLocked ? 'LOCKED' : 'UNLOCKED'}</Text>
+                        </View>
+                        <View style={styles.modalMetaCol}>
+                          <Text style={styles.modalMetaLabel}>{isVietnamese ? 'TIẾN ĐỘ' : 'PROGRESS'}</Text>
+                          <Text style={[styles.modalMetaValue, { color: COLORS.primaryDark, fontWeight: '700' }]}>{info.progress}%</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })()}
+
+                {selectedOrder.status === 'COMPLETED' && (
+                  <View style={styles.completedBanner}>
+                    <CheckCircle2 size={18} color="#059669" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.completedBannerTitle}>
+                        {isVietnamese ? 'Chu trình giặt hoàn tất!' : 'Wash cycle completed!'}
+                      </Text>
+                      <Text style={styles.completedBannerSub}>
+                        {isVietnamese ? 'Cửa máy đã mở, bạn có thể lấy đồ ngay bây giờ.' : 'Door unlocked, you can retrieve your clothes now.'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 {/* 2. VERTICAL TIMELINE / STEPPER (Pinterest Screen 4 Stepper) */}
                 <View style={styles.timelineCard}>
@@ -729,6 +956,177 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primaryDark,
+  },
+
+  // Live real-time running machine box on Order Card
+  runningLiveBox: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    padding: 10,
+    marginTop: 6,
+    gap: 6,
+  },
+  runningLiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  runningDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
+  runningPhaseTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369A1',
+    flex: 1,
+  },
+  countdownPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#7DD3FC',
+  },
+  countdownPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarThumb: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 3,
+  },
+  runningTelemetryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 2,
+  },
+  telemetryTagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  telemetryTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  progressPercentText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+
+  // Modal running & completed card styles
+  modalRunningCard: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    padding: 14,
+    marginBottom: 14,
+    gap: 10,
+  },
+  modalRunningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalRunningTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  modalCountdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#7DD3FC',
+  },
+  modalCountdownText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  modalProgressTrack: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  modalProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+  },
+  modalMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  modalMetaCol: {
+    alignItems: 'center',
+  },
+  modalMetaLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  modalMetaValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  completedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  completedBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  completedBannerSub: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 2,
   },
   cardFooter: {
     flexDirection: 'row',

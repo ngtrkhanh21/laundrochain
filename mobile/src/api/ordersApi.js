@@ -144,5 +144,14 @@ export const ordersApi = {
       body: JSON.stringify({ issueType, description, contactPhone }),
     });
   },
+
+  // 15. Lấy trạng thái telemetry trực tiếp từ thiết bị IoT
+  getIoTStatus: async () => {
+    try {
+      return await apiRequest('/api/iot/status');
+    } catch {
+      return null;
+    }
+  },
 };
 
