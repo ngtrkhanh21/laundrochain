@@ -180,11 +180,12 @@ export default function MyOrdersScreen({ navigation }) {
     return () => clearInterval(pollTimer);
   }, [activeFilter, hasActiveOrders, isVietnamese, logout, selectedOrder]);
 
-  // 4. Tính toán tiến độ & đếm lùi thời gian thực của máy giặt đang chạy
+  // 4. Tính toán tiến độ & đếm lùi thời gian thực của máy giặt / máy sấy đang chạy
   const getRunningProgressInfo = (order) => {
     const cycleDurationSec = 30; // 30s chu trình giả lập
-    const machineCode = order.assignedMachines || 'W01';
-    const iot = iotDevices[machineCode] || iotDevices['W01'];
+    const machineCode = (order.assignedMachines || 'W01').trim().toUpperCase();
+    const isDryer = machineCode.startsWith('D') || order.serviceName?.toLowerCase()?.includes('sấy');
+    const iot = iotDevices[machineCode] || (machineCode === 'W01' ? iotDevices['W01'] : null);
 
     let startMs = order.updatedAt ? new Date(order.updatedAt).getTime() : new Date(order.createdAt).getTime();
     if (order.startedAt) {
@@ -192,21 +193,47 @@ export default function MyOrdersScreen({ navigation }) {
     }
 
     const elapsedSec = Math.max(0, Math.floor((nowTick - startMs) / 1000));
-    const remainSec = Math.max(0, cycleDurationSec - (elapsedSec % (cycleDurationSec + 8)));
+    // Đếm lùi chuẩn: không dùng modulo lặp lại vô tận
+    const remainSec = Math.max(0, cycleDurationSec - elapsedSec);
 
-    let progress = Math.min(100, Math.max(8, Math.floor(((cycleDurationSec - remainSec) / cycleDurationSec) * 100)));
+    let progress = Math.min(100, Math.max(8, Math.floor((elapsedSec / cycleDurationSec) * 100)));
     if (iot?.progressPercent > 0) {
       progress = Math.max(progress, iot.progressPercent);
     }
 
-    let phaseName = isVietnamese ? 'Đang giặt nước nóng' : 'Washing';
+    let phaseName = '';
     let watts = 420;
-    if (progress >= 85) {
-      phaseName = isVietnamese ? 'Đang vắt ráo siêu tốc' : 'Spinning';
-      watts = 780;
-    } else if (progress >= 60) {
-      phaseName = isVietnamese ? 'Đang xả thơm sợi vải' : 'Rinsing';
-      watts = 310;
+
+    if (isDryer) {
+      // Chu trình máy sấy (D01, D02,...)
+      if (progress >= 100 || remainSec === 0) {
+        phaseName = isVietnamese ? 'Sấy hoàn tất • Đang mở cửa' : 'Drying Complete';
+        watts = 0;
+      } else if (progress >= 80) {
+        phaseName = isVietnamese ? 'Đang thổi gió làm nguội chống nhăn' : 'Cooling Down';
+        watts = 180;
+      } else if (progress >= 40) {
+        phaseName = isVietnamese ? 'Đang sấy nhiệt đảo chiều diệt khuẩn' : 'Sanitizing Heat Tumbling';
+        watts = 2100;
+      } else {
+        phaseName = isVietnamese ? 'Đang gia nhiệt luồng khí nóng' : 'Hot Air Heating';
+        watts = 1650;
+      }
+    } else {
+      // Chu trình máy giặt (W01, W02, W05,...)
+      if (progress >= 100 || remainSec === 0) {
+        phaseName = isVietnamese ? 'Giặt hoàn tất • Đang mở cửa' : 'Wash Complete';
+        watts = 0;
+      } else if (progress >= 85) {
+        phaseName = isVietnamese ? 'Đang vắt ráo siêu tốc' : 'Spinning';
+        watts = 780;
+      } else if (progress >= 60) {
+        phaseName = isVietnamese ? 'Đang xả thơm sợi vải' : 'Rinsing';
+        watts = 310;
+      } else {
+        phaseName = isVietnamese ? 'Đang giặt nước nóng' : 'Washing';
+        watts = 420;
+      }
     }
 
     if (iot?.powerWatts > 0) {
@@ -219,7 +246,7 @@ export default function MyOrdersScreen({ navigation }) {
       progress,
       phaseName,
       watts,
-      isDoorLocked: remainSec > 0,
+      isDoorLocked: remainSec > 0 && progress < 100,
       iotConnected: !!iot,
     };
   };
