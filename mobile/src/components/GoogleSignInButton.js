@@ -1,28 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TouchableOpacity,
   Text,
   StyleSheet,
   View,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { COLORS } from '../constants/config';
 import { useLanguage } from '../context/LanguageContext';
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Google Client ID từ Web & Backend cấu hình
+const GOOGLE_CLIENT_ID = '74731448226-861gtmlc71sr096tgkld2oelafuokds5.apps.googleusercontent.com';
 
 export default function GoogleSignInButton({ onLogin, loading = false }) {
   const { isVietnamese } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
+  const [gsiReady, setGsiReady] = useState(false);
+  const containerRef = useRef(null);
 
-  const handlePress = async () => {
+  // 1. Trên Web: Tải Google Identity Services (GIS) và hiển thị nút Google thật duy nhất
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const renderGoogleBtn = () => {
+      if (typeof window === 'undefined' || !window.google?.accounts?.id) return;
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (response?.credential && onLogin) {
+              setSubmitting(true);
+              try {
+                await onLogin(response.credential);
+              } finally {
+                setSubmitting(false);
+              }
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(containerRef.current, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'signin_with',
+            shape: 'rectangular',
+            width: 320,
+            logo_alignment: 'left',
+            locale: isVietnamese ? 'vi' : 'en',
+          });
+          setGsiReady(true);
+        }
+      } catch (err) {
+        console.warn('Google GSI render error:', err);
+      }
+    };
+
+    const scriptId = 'google-gsi-client';
+    let script = document.getElementById(scriptId);
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setTimeout(renderGoogleBtn, 100);
+      };
+      document.head.appendChild(script);
+    } else {
+      setTimeout(renderGoogleBtn, 100);
+    }
+  }, [isVietnamese, onLogin]);
+
+  // 2. Trên Native (Android / iOS): Sử dụng AuthSession
+  const handleNativePress = async () => {
     if (loading || submitting) return;
     setSubmitting(true);
     try {
-      if (onLogin) {
-        await onLogin();
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'laundrochain',
+        preferLocalhost: true,
+      });
+
+      const authUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=id_token%20token` +
+        `&scope=${encodeURIComponent('openid email profile')}` +
+        `&nonce=${Date.now()}`;
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type === 'success' && result.url) {
+        const hashIndex = result.url.indexOf('#');
+        const queryIndex = result.url.indexOf('?');
+        const fragment = hashIndex !== -1 ? result.url.substring(hashIndex + 1) : (queryIndex !== -1 ? result.url.substring(queryIndex + 1) : '');
+        const params = new URLSearchParams(fragment);
+        const idToken = params.get('id_token');
+        if (idToken && onLogin) {
+          await onLogin(idToken);
+        }
       }
     } catch (err) {
-      console.warn('Google Sign-in error:', err);
+      console.warn('Native Google Auth error:', err);
     } finally {
       setSubmitting(false);
     }
@@ -30,11 +121,43 @@ export default function GoogleSignInButton({ onLogin, loading = false }) {
 
   const isBusy = loading || submitting;
 
+  // Trên Web: Render duy nhất nút Google chính thức từ Google Identity Services
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webContainer}>
+        {isBusy && (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>
+              {isVietnamese ? 'Đang xác thực với Google...' : 'Authenticating with Google...'}
+            </Text>
+          </View>
+        )}
+        <div
+          ref={containerRef}
+          style={{
+            display: isBusy ? 'none' : 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            minHeight: 44,
+          }}
+        />
+        {!gsiReady && !isBusy && (
+          <View style={styles.placeholderButton}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // Trên Native: Nút TouchableOpacity chuẩn
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.googleButton}
-        onPress={handlePress}
+        onPress={handleNativePress}
         disabled={isBusy}
         activeOpacity={0.82}
       >
@@ -74,6 +197,34 @@ export default function GoogleSignInButton({ onLogin, loading = false }) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+  },
+  webContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  loadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  placeholderButton: {
+    width: 320,
+    height: 44,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#dadce0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   googleButton: {
     flexDirection: 'row',

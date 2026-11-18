@@ -42,11 +42,14 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleGoogleLogin = async (idToken) => {
+    if (!idToken) {
+      setErrorMessage(isVietnamese ? 'Không nhận được mã xác thực từ Google.' : 'No Google credential received.');
+      return;
+    }
     setErrorMessage('');
-    const token = idToken || ('mock-google-token-' + Date.now());
-    const res = await loginWithGoogle(token);
+    const res = await loginWithGoogle(idToken);
     if (!res.success) {
-      setErrorMessage(res.error || (isVietnamese ? 'Đăng nhập Google thất bại.' : 'Google login failed.'));
+      setErrorMessage(res.error || (isVietnamese ? 'Xác thực tài khoản Google thất bại.' : 'Google authentication failed.'));
     }
   };
 
