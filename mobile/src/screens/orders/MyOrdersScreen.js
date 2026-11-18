@@ -66,6 +66,7 @@ export default function MyOrdersScreen({ navigation }) {
   const [iotDevices, setIotDevices] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
   const previousOrdersRef = useRef([]);
+  const startedTimesRef = useRef({});
 
   // 1. Đồng hồ đếm lùi thời gian thực từng giây (1000ms)
   useEffect(() => {
@@ -183,20 +184,32 @@ export default function MyOrdersScreen({ navigation }) {
   // 4. Tính toán tiến độ & đếm lùi thời gian thực của máy giặt / máy sấy đang chạy
   const getRunningProgressInfo = (order) => {
     const cycleDurationSec = 30; // 30s chu trình giả lập
+    const orderKey = order.orderId || order.id || order.orderCode || 'ORD';
     const machineCode = (order.assignedMachines || 'W01').trim().toUpperCase();
     const isDryer = machineCode.startsWith('D') || order.serviceName?.toLowerCase()?.includes('sấy');
     const iot = iotDevices[machineCode] || (machineCode === 'W01' ? iotDevices['W01'] : null);
 
-    let startMs = order.updatedAt ? new Date(order.updatedAt).getTime() : new Date(order.createdAt).getTime();
-    if (order.startedAt) {
-      startMs = new Date(order.startedAt).getTime();
+    let startMs = startedTimesRef.current[orderKey];
+    if (!startMs) {
+      if (order.startedAt) {
+        startMs = new Date(order.startedAt).getTime();
+      } else if (order.updatedAt) {
+        startMs = new Date(order.updatedAt).getTime();
+      } else {
+        startMs = nowTick;
+      }
+      // Nếu mốc thời gian quá cũ (trên 30s) mà đơn vẫn IN_PROGRESS, gán lại mốc hiện tại để thanh % chạy mượt
+      if (nowTick - startMs > cycleDurationSec * 1000) {
+        startMs = nowTick;
+      }
+      startedTimesRef.current[orderKey] = startMs;
     }
 
     const elapsedSec = Math.max(0, Math.floor((nowTick - startMs) / 1000));
-    // Đếm lùi chuẩn: không dùng modulo lặp lại vô tận
     const remainSec = Math.max(0, cycleDurationSec - elapsedSec);
 
-    let progress = Math.min(100, Math.max(8, Math.floor((elapsedSec / cycleDurationSec) * 100)));
+    // Tính phần trăm chạy mượt từ 4% lên 100%
+    let progress = Math.min(100, Math.max(4, Math.floor((elapsedSec / cycleDurationSec) * 100)));
     if (iot?.progressPercent > 0) {
       progress = Math.max(progress, iot.progressPercent);
     }
@@ -255,6 +268,8 @@ export default function MyOrdersScreen({ navigation }) {
   const handleStartOrder = async (order) => {
     setActionLoading(true);
     try {
+      const orderKey = order.orderId || order.id || order.orderCode;
+      startedTimesRef.current[orderKey] = Date.now();
       await ordersApi.startOrder(order.orderId);
       Alert.alert(
         'Thành công',
@@ -507,6 +522,7 @@ export default function MyOrdersScreen({ navigation }) {
       ) : (
         <FlatList
           data={orders}
+          extraData={nowTick}
           keyExtractor={(item, index) => item.orderId || item.id || String(index)}
           renderItem={renderOrderItem}
           contentContainerStyle={styles.listContent}
