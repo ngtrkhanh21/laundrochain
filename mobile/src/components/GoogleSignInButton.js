@@ -1,115 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TouchableOpacity,
   Text,
   StyleSheet,
   View,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
 import { COLORS } from '../constants/config';
 import { useLanguage } from '../context/LanguageContext';
-
-// Kích hoạt hoàn tất AuthSession nếu cần trên web / redirect
-WebBrowser.maybeCompleteAuthSession();
-
-// Google Client ID từ Web & Backend cấu hình
-const GOOGLE_CLIENT_ID = '74731448226-861gtmlc71sr096tgkld2oelafuokds5.apps.googleusercontent.com';
 
 export default function GoogleSignInButton({ onLogin, loading = false }) {
   const { isVietnamese } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
 
-  // Khởi tạo Google Identity Services ngầm trên Web nếu có
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-
-    const scriptId = 'google-gsi-client';
-    const initGsi = () => {
-      if (typeof window !== 'undefined' && window.google?.accounts?.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: async (response) => {
-              if (response?.credential && onLogin) {
-                setSubmitting(true);
-                try {
-                  await onLogin(response.credential);
-                } finally {
-                  setSubmitting(false);
-                }
-              }
-            },
-            auto_select: false,
-            cancel_on_tap_outside: true,
-          });
-        } catch (e) {
-          console.warn('Google GSI init error:', e);
-        }
-      }
-    };
-
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(initGsi, 150);
-      };
-      document.head.appendChild(script);
-    } else {
-      setTimeout(initGsi, 150);
-    }
-  }, [onLogin]);
-
-  // Xử lý đăng nhập Google duy nhất
   const handlePress = async () => {
-    if (isBusy) return;
+    if (loading || submitting) return;
     setSubmitting(true);
-
     try {
-      // 1. Nếu trên Native (Android / iOS): Thử mở AuthSession
-      if (Platform.OS === 'android' || Platform.OS === 'ios') {
-        try {
-          const redirectUri = AuthSession.makeRedirectUri({
-            scheme: 'laundrochain',
-            preferLocalhost: true,
-          });
-
-          const authUrl =
-            `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=id_token%20token` +
-            `&scope=${encodeURIComponent('openid email profile')}` +
-            `&nonce=${Date.now()}`;
-
-          const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-          if (result.type === 'success' && result.url) {
-            const hashIndex = result.url.indexOf('#');
-            const queryIndex = result.url.indexOf('?');
-            const fragment = hashIndex !== -1 ? result.url.substring(hashIndex + 1) : (queryIndex !== -1 ? result.url.substring(queryIndex + 1) : '');
-            const params = new URLSearchParams(fragment);
-            const idToken = params.get('id_token');
-            if (idToken && onLogin) {
-              await onLogin(idToken);
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('Native Google Auth skipped:', e);
-        }
-      }
-
-      // 2. Tự động đăng nhập Google trực tiếp vào PostgreSQL Neon thật
       if (onLogin) {
-        const mockToken = 'mock-google-token-' + Date.now();
-        await onLogin(mockToken);
+        await onLogin();
       }
     } catch (err) {
       console.warn('Google Sign-in error:', err);
@@ -122,7 +32,6 @@ export default function GoogleSignInButton({ onLogin, loading = false }) {
 
   return (
     <View style={styles.container}>
-      {/* DUY NHẤT 1 NÚT ĐĂNG NHẬP GOOGLE DUY NHẤT */}
       <TouchableOpacity
         style={styles.googleButton}
         onPress={handlePress}
