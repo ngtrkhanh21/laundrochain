@@ -16,7 +16,7 @@ import { useLanguage } from '../context/LanguageContext';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google Client ID từ Web & Backend cấu hình
-const GOOGLE_CLIENT_ID = '74731448226-861gtmlc71sr096tgkld2oelafuokds5.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '842258418482-7940n2srems7p3cikasvnrkh8tkluqeb.apps.googleusercontent.com';
 
 export default function GoogleSignInButton({ onLogin, loading = false }) {
   const { isVietnamese } = useLanguage();
