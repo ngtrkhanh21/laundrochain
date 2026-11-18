@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -23,11 +23,105 @@ const GOOGLE_CLIENT_ID = '74731448226-861gtmlc71sr096tgkld2oelafuokds5.apps.goog
 export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading = false }) {
   const { isVietnamese } = useLanguage();
   const [authenticating, setAuthenticating] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const gsiContainerRef = useRef(null);
 
-  // Xử lý luồng Google OAuth THẬT qua WebBrowser
+  // Tải Google Identity Services (GIS) khi chạy trên Web
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const scriptId = 'google-gsi-client';
+    const initGsi = () => {
+      if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: async (response) => {
+              if (response?.credential) {
+                setAuthenticating(true);
+                try {
+                  if (onRealLogin) {
+                    await onRealLogin(response.credential);
+                  }
+                } finally {
+                  setAuthenticating(false);
+                }
+              }
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          // Hiển thị nút chuẩn của Google nếu có container
+          if (gsiContainerRef.current) {
+            window.google.accounts.id.renderButton(gsiContainerRef.current, {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              text: 'signin_with',
+              shape: 'rectangular',
+              width: 320,
+              locale: isVietnamese ? 'vi' : 'en',
+            });
+          }
+        } catch (e) {
+          console.warn('Google GSI init error:', e);
+        }
+      }
+    };
+
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setTimeout(initGsi, 100);
+      };
+      document.head.appendChild(script);
+    } else {
+      setTimeout(initGsi, 100);
+    }
+  }, [isVietnamese, onRealLogin]);
+
+  // Xử lý luồng Google OAuth THẬT
   const handleRealGoogleSignIn = async () => {
     setAuthenticating(true);
     try {
+      // 1. Trên Web: Dùng Google Identity Services (GIS)
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (response?.credential) {
+              if (onRealLogin) await onRealLogin(response.credential);
+            }
+          },
+        });
+
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('Google prompt not displayed:', notification.getNotDisplayedReason());
+            Alert.alert(
+              isVietnamese ? 'Cấu hình Google Cloud Console' : 'Google Cloud Console Setup',
+              isVietnamese
+                ? 'Vui lòng đảm bảo bạn đã thêm "http://localhost:8081" vào mục "Authorized JavaScript origins" trong Google Cloud Console.\n\nHoặc bấm "Đăng nhập Google 1-Click (Demo DB Thật)" ngay bên dưới để vào hệ thống ngay với cơ sở dữ liệu thật!'
+                : 'Please add "http://localhost:8081" to "Authorized JavaScript origins" in Google Cloud Console.\n\nOr click "1-Click Google Demo" below to sign in instantly.',
+              [
+                { text: isVietnamese ? 'Đóng' : 'Close', style: 'cancel' },
+                {
+                  text: isVietnamese ? '⚡ Đăng nhập Google 1-Click' : '⚡ 1-Click Demo',
+                  onPress: () => handleDemoClick(),
+                },
+              ]
+            );
+          }
+        });
+        return;
+      }
+
+      // 2. Trên Native (Android / iOS)
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: 'laundrochain',
         preferLocalhost: false,
@@ -44,7 +138,6 @@ export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading =
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       if (result.type === 'success' && result.url) {
-        // Trích xuất id_token từ URL hash hoặc query string
         const hashIndex = result.url.indexOf('#');
         const queryIndex = result.url.indexOf('?');
         const fragment = hashIndex !== -1 ? result.url.substring(hashIndex + 1) : (queryIndex !== -1 ? result.url.substring(queryIndex + 1) : '');
@@ -59,11 +152,9 @@ export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading =
           return;
         }
       } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        // Người dùng tự đóng cửa sổ
         return;
       }
 
-      // Nếu không trích xuất được id_token hoặc redirect URI chưa được cấp phép trong Google Console
       Alert.alert(
         isVietnamese ? 'Thông báo đăng nhập Google' : 'Google Sign-in Note',
         isVietnamese
@@ -73,7 +164,7 @@ export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading =
           { text: isVietnamese ? 'Đóng' : 'Close', style: 'cancel' },
           {
             text: isVietnamese ? 'Đăng nhập Google Demo' : '1-Click Google Demo',
-            onPress: () => onDemoLogin && onDemoLogin(),
+            onPress: () => handleDemoClick(),
           },
         ]
       );
@@ -88,15 +179,34 @@ export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading =
     }
   };
 
+  const handleDemoClick = async () => {
+    if (demoLoading || loading) return;
+    setDemoLoading(true);
+    try {
+      if (onDemoLogin) {
+        await onDemoLogin();
+      }
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   const isBusy = loading || authenticating;
 
   return (
     <View style={styles.container}>
-      {/* 1. NÚT ĐĂNG NHẬP GOOGLE OAUTH THẬT */}
+      {/* Container nút Google Identity Services trên Web nếu trình duyệt hỗ trợ */}
+      {Platform.OS === 'web' && (
+        <View style={styles.gsiWrapper}>
+          <div ref={gsiContainerRef} style={{ display: 'flex', justifyContent: 'center', width: '100%' }} />
+        </View>
+      )}
+
+      {/* 1. NÚT ĐĂNG NHẬP GOOGLE OAUTH */}
       <TouchableOpacity
         style={styles.realButton}
         onPress={handleRealGoogleSignIn}
-        disabled={isBusy}
+        disabled={isBusy || demoLoading}
         activeOpacity={0.8}
       >
         <View style={styles.iconContainer}>
@@ -131,16 +241,20 @@ export default function GoogleSignInButton({ onRealLogin, onDemoLogin, loading =
 
       {/* 2. NÚT ĐĂNG NHẬP GOOGLE 1-CLICK (LƯU DB THẬT) */}
       <TouchableOpacity
-        style={styles.demoButton}
-        onPress={onDemoLogin}
-        disabled={isBusy}
+        style={[styles.demoButton, demoLoading && styles.demoButtonDisabled]}
+        onPress={handleDemoClick}
+        disabled={isBusy || demoLoading}
         activeOpacity={0.8}
       >
-        <Text style={styles.demoText}>
-          {isVietnamese
-            ? '⚡ Đăng nhập Google 1-Click (Demo DB Thật)'
-            : '⚡ 1-Click Google Demo (Real DB)'}
-        </Text>
+        {demoLoading ? (
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        ) : (
+          <Text style={styles.demoText}>
+            {isVietnamese
+              ? '⚡ Đăng nhập Google 1-Click (Demo DB Thật)'
+              : '⚡ 1-Click Google Demo (Real DB)'}
+          </Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -150,6 +264,11 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     gap: 8,
+  },
+  gsiWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   realButton: {
     flexDirection: 'row',
@@ -178,6 +297,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primaryBorder,
     width: '100%',
+  },
+  demoButtonDisabled: {
+    opacity: 0.6,
   },
   iconContainer: {
     marginRight: 10,
