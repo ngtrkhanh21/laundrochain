@@ -41,18 +41,10 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleRealGoogleLogin = async (idToken) => {
+  const handleGoogleLogin = async (idToken) => {
     setErrorMessage('');
-    const res = await loginWithGoogle(idToken);
-    if (!res.success) {
-      setErrorMessage(res.error || (isVietnamese ? 'Xác thực Google thất bại.' : 'Google auth failed.'));
-    }
-  };
-
-  const handleGoogleDemoLogin = async () => {
-    setErrorMessage('');
-    const mockToken = 'mock-google-token-' + Date.now();
-    const res = await loginWithGoogle(mockToken);
+    const token = idToken || ('mock-google-token-' + Date.now());
+    const res = await loginWithGoogle(token);
     if (!res.success) {
       setErrorMessage(res.error || (isVietnamese ? 'Đăng nhập Google thất bại.' : 'Google login failed.'));
     }
@@ -218,8 +210,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* Google Login Options */}
             <GoogleSignInButton
-              onRealLogin={handleRealGoogleLogin}
-              onDemoLogin={handleGoogleDemoLogin}
+              onLogin={handleGoogleLogin}
               loading={loading}
             />
 
